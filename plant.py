@@ -12,6 +12,11 @@ class Plant:
     chrom1: int
     chrom2: int
 
+    def format(self):
+        xu = format(self.chrom1, f"0{self.n_loci}b")
+        xl = format(self.chrom2, f"0{self.n_loci}b")
+        return (xu, xl)
+
     def create_gamete(self) -> Chromosome:
         split = randrange(0, self.n_loci)
         start = randint(0, 1)

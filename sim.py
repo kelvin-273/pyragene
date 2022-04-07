@@ -6,8 +6,10 @@ Plants
 from typing import Optional, Callable
 from dataclasses import dataclass
 from collections import Counter
-from random import randrange, sample
+from random import randrange, sample, choices
 from collections import namedtuple
+from copy import deepcopy
+from pprint import pprint
 
 import matplotlib.pyplot as plt
 import seaborn as sn
@@ -30,163 +32,6 @@ class Args:
     resource_cap: Optional[int] = None
     generation_cap: Optional[int] = None
     pruning: bool = False
-
-
-class SuperSimulator:
-    """
-    A class to instantiate simulation objects.
-
-    Simulation objects will be able to be extended with selection rules,
-    observers, auxiliary data etc.
-    """
-
-    def __init__(
-        self, n_loci: int, n_init: int, max_population=None,
-    ):
-        self.n_loci = n_loci
-        self.n_init = n_init
-        self.max_population = max_population
-        self.observers = []
-
-    def run(self):
-        pop = [plant.generate_random_plant(self.n_loci) for _ in range(self.n_init)]
-        goal = plant.generate_goal(self.n_loci)
-        i = 0
-
-        if plant.union(pop) != goal:
-            return None
-
-        if goal in pop:
-            return 0
-
-        while True:
-            for f, xs in self.observers:
-                xs.append(f(self))
-            i += 1
-            p1, p2 = sample(pop, 2)
-            child = p1.cross(p2)
-            pop.append(child)
-            if child == goal:
-                break
-
-    def add_observer(self, obsevering_function):
-        output_sink = []
-        self.observers.append((obsevering_function, output_sink))
-        return output_sink
-
-
-class Experiment:
-    @staticmethod
-    def counting_crossovers(parent_plant: plant.Plant) -> Counter:
-        """counts how often each gamete results from the crossover of a plant
-
-        :returns: counts of each gamete resulting from the parent_plant's
-        crossover
-
-        """
-        c = Counter()
-        for _ in range(1000000):
-            c[parent_plant.create_gamete()] += 1
-        return c
-
-    @staticmethod
-    def random_choices(n_loci, n_initial) -> Optional[int]:
-        """
-        create random initial population and append the result of crossing
-        parent plants until the goal is created.
-
-        :n_loci: number of loci
-        :n_initial: size of initial population
-        :returns: the number of matings that lead to the goal
-
-        """
-        pop = [generate_random_plant(n_loci) for _ in range(n_initial)]
-        goal = generate_goal(n_loci)
-        i = 0
-
-        if union(pop) != goal:
-            return None
-
-        if goal in pop:
-            return 0
-
-        while True:
-            i += 1
-            p1, p2 = sample(pop, 2)
-            child = p1.cross(p2)
-            pop.append(child)
-            if child == goal:
-                break
-        return i
-
-    @staticmethod
-    def sample_simulator(f_simulator, n_loci, n_initial, n_samples):
-        """
-        Samples the time required to find the goal from random matings given
-        the goal can be constructed from the initial population.
-        """
-        output_samples = []
-        while len(output_samples) < n_samples:
-            res = f_simulator(n_loci, n_initial)
-            if res is not None:
-                output_samples.append(res)
-
-        sn.distplot(output_samples)
-        # sn.distplot(np.log([1+x for x in output_samples]))
-        plt.title(
-            "no. years to find goal breeding one-at-a-time\n"
-            + f"n_loci: {n_loci},"
-            + f"n_initial: {n_initial},"
-            + f"n_samples: {n_samples}"
-        )
-        plt.xlabel("time in years")
-        plt.show()
-
-        sn.distplot(np.log([1 + x for x in output_samples]))
-        plt.title(
-            "log-plot of no. years to find goal breeding one-at-a-time\n"
-            + f"n_loci: {n_loci},"
-            + f"n_initial: {n_initial},"
-            + f"n_samples: {n_samples}"
-        )
-        plt.xlabel("time in years")
-        plt.show()
-
-    @staticmethod
-    def sample_random_choices(n_loci, n_initial, n_samples):
-        """
-        Samples the time required to find the goal from random matings given
-        the goal can be constructed from the initial population.
-        """
-        return Experiment.sample_simulator(
-            Experiment.random_choices, n_loci, n_initial, n_samples
-        )
-
-
-def generate_initial_pop_trait_introgression(args: Args):
-    n_initial_pop = args.n_initial_pop
-    n_loci = args.n_loci
-    n_remaining_loci = args.n_remaining_loci
-    holes = sample(range(n_loci), n_remaining_loci)
-
-    mask = all_ones = (1 << n_loci) - 1
-    for i in holes:
-        mask ^= 1 << i
-
-    elite_pop = [
-        Plant(n_loci, randrange(1 << n_loci) | mask, randrange(1 << n_loci) | mask,)
-        for _ in range(n_initial_pop - 1)
-    ]
-
-    donor_pop = [
-        Plant(
-            n_loci,
-            randrange(1 << n_loci) | (~mask & all_ones),
-            randrange(1 << n_loci) | (~mask & all_ones),
-        )
-        for _ in range(1)
-    ]
-    return elite_pop + donor_pop
 
 
 def seq_breeding(args: Args):
@@ -216,6 +61,7 @@ def seq_breeding(args: Args):
     if pruning:
         pop = filter_non_dominating(pop)
 
+    # print([x.format() for x in pop])
     while goal not in pop and (not generation_cap or t < generation_cap):
         x, y = choose_parents(pop)
         z = choose_intermediate_target(x, y)
@@ -223,7 +69,7 @@ def seq_breeding(args: Args):
         if pruning and any(x0.dom_weak(z) for x0 in pop):
             continue
         # remove plants in the population that are dominated by z
-        pop = [x for x in pop if not z.dom_weak(x)] + [x]
+        pop = [x for x in pop if not z.dom_weak(x)] + [z]
 
         p = prob_z_given_xy_fast(z, x, y)
         n = number_of_trials_to_create(p, gamma)
@@ -235,10 +81,18 @@ def seq_breeding(args: Args):
         n_max = max(n, n_max)
         n_tot += n
         t += 1
+        # pprint([x.format() for x in pop])
 
+    # print(Results(
+        # n_generations=t, n_plants_max=n_max, n_plants_tot=n_tot, success=goal in pop
+    # ))
     return Results(
         n_generations=t, n_plants_max=n_max, n_plants_tot=n_tot, success=goal in pop
     )
+
+
+def pcv_breeding(args: Args):
+    pass
 
 
 def filter_non_dominating(pop: Population) -> Population:
@@ -263,23 +117,32 @@ class PopulationGenerators:
         n_initial_pop = args.n_initial_pop
         n_loci = args.n_loci
         n_remaining_loci = args.n_remaining_loci
+        assert n_remaining_loci <= n_loci // 2
         holes = sample(range(n_loci), n_remaining_loci)
 
         mask = all_ones = (1 << n_loci) - 1
         for i in holes:
             mask ^= 1 << i
 
+        def gen_elite(mask: int):
+            xu = xl = (1 << n_loci) - 1
+            d = (~mask) & xu & xl
+            while d:
+                u = randrange(1 << n_loci)
+                l = randrange(1 << n_loci)
+                xu = ((~d) & xu) | (d & u)
+                xl = ((~d) & xl) | (d & l)
+                d = (~mask) & xu & xl
+            return Plant(n_loci, xu, xl)
+
         elite_pop = [
-            Plant(n_loci, randrange(1 << n_loci) | mask, randrange(1 << n_loci) | mask,)
+            # Plant(n_loci, randrange(1 << n_loci) | mask, randrange(1 << n_loci) | mask,)
+            gen_elite(mask)
             for _ in range(n_initial_pop - 1)
         ]
 
         donor_pop = [
-            Plant(
-                n_loci,
-                randrange(1 << n_loci) | (~mask & all_ones),
-                randrange(1 << n_loci) | (~mask & all_ones),
-            )
+            gen_elite(~mask)
             for _ in range(1)
         ]
         return elite_pop + donor_pop
@@ -403,10 +266,10 @@ class SelectionMethods:
 
 
 def choose_parents_uniform(pop: Population):
-    return sample(pop, 2)
+    return choices(pop, k=2)
 
 
-def choose_intermediate_target(x: Plant, y: Plant) -> Plant:
+def choose_intermediate_target_uniform(x: Plant, y: Plant) -> Plant:
     return x.cross(y)
 
 

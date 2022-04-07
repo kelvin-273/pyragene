@@ -2,6 +2,7 @@ import unittest
 
 import sim
 import plant
+from sim import PopulationGenerators
 
 
 class TestSimulation(unittest.TestCase):
@@ -16,8 +17,8 @@ class TestSimulation(unittest.TestCase):
                 10,
                 0.5,
                 sim.choose_parents_uniform,
-                sim.choose_intermediate_target,
-                sim.generate_initial_pop_trait_introgression,
+                sim.choose_intermediate_target_uniform,
+                PopulationGenerators.generate_initial_pop_trait_introgression,
                 pruning=True,
             )
             for _ in range(10):
@@ -35,7 +36,7 @@ class TestSimulation(unittest.TestCase):
                     1,
                     0.5,
                     sim.choose_parents_uniform,
-                    sim.choose_intermediate_target,
+                    sim.choose_intermediate_target_uniform,
                     sim.PopulationGenerators.generate_initial_pop_single,
                     pruning=True
                 )
@@ -58,7 +59,7 @@ class TestSimulation(unittest.TestCase):
                 n_initial_pop=1,
                 gamma=0.5,
                 choose_parents=sim.choose_parents_uniform,
-                choose_intermediate_target=sim.choose_intermediate_target,
+                choose_intermediate_target=sim.choose_intermediate_target_uniform,
                 generate_initial_pop=PopulationGenerators.generate_initial_pop_single,
                 pruning=True,
             )
@@ -74,4 +75,50 @@ class TestSimulation(unittest.TestCase):
         pop = [plant.Plant(4, 13, 15)]
         x, y = sim.choose_parents_uniform(pop)
         assert x is y and y is pop[0]
-        z = sim.choose_intermediate_target(x, y)
+        z = sim.choose_intermediate_target_uniform(x, y)
+
+    def test_generate_initial_pop_trait_introgression(self):
+        from sim import PopulationGenerators
+        from utils import count_ones
+        n_loci = 8
+        for n_remaining_loci in range(n_loci // 2):
+            args = sim.Args(
+                n_loci=n_loci,
+                n_remaining_loci=n_remaining_loci,
+                n_initial_pop=2,
+                gamma=0.5,
+                choose_parents=sim.choose_parents_uniform,
+                choose_intermediate_target=sim.choose_intermediate_target_uniform,
+                generate_initial_pop=PopulationGenerators.generate_initial_pop_trait_introgression,
+                pruning=True,
+            )
+            for i in range(100):
+                pop = PopulationGenerators.generate_initial_pop_trait_introgression(args)
+                elite = pop[0]
+                donor = pop[1]
+                assert count_ones(elite.chrom1 & elite.chrom2) \
+                    == n_loci - n_remaining_loci, f"""
+                {elite.chrom1}-{elite.chrom2}
+                {n_loci - n_remaining_loci}
+                """
+
+    def test_generate_initial_pop_trait_introgression2(self):
+        from sim import PopulationGenerators
+        from utils import count_ones
+        n_loci = 8
+        for n_remaining_loci in range(n_loci // 2):
+            args = sim.Args(
+                n_loci=n_loci,
+                n_remaining_loci=n_remaining_loci,
+                n_initial_pop=2,
+                gamma=0.5,
+                choose_parents=sim.choose_parents_uniform,
+                choose_intermediate_target=sim.choose_intermediate_target_uniform,
+                generate_initial_pop=PopulationGenerators.generate_initial_pop_trait_introgression,
+                pruning=True,
+            )
+            for i in range(100):
+                pop = PopulationGenerators.generate_initial_pop_trait_introgression(args)
+                elite = pop[0]
+                donor = pop[1]
+                assert (elite.chrom1 & elite.chrom2 & donor.chrom1 & donor.chrom2) == 0, f"\n\t{(elite, donor)}\n\t{( elite.format(), donor.format() )}"
