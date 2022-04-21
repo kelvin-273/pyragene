@@ -1,5 +1,6 @@
 from math import log, log2
 from dataclasses import dataclass
+from collections import Counter
 
 from utils import *
 
@@ -23,10 +24,13 @@ class Plant:
 
         return self.create_gamete_with_crosspoint(split, start)
 
-    def create_gamete_with_crosspoint(self, split: int, start: int):
+    def create_gamete_with_crosspoint(self, start: int, split: int):
+        """
+        Creates a gamete with cross point
+        """
         # bit-string representing the source of the ith allele ∀i∈[n]
         mask = (1 << self.n_loci + 1) - 1
-        crossing = mask >> split << split
+        crossing = (mask >> split) << split
         if not start:
             crossing ^= mask
 
@@ -94,6 +98,26 @@ class Plant:
         )
 
 
+    def reachable_gametes(self):
+        """
+        Returns the set of gametes that can be created from this plant.
+        """
+        d = Counter(
+            self.create_gamete_with_crosspoint(i, j)
+            for i in range(2)
+            for j in range(self.n_loci)
+        )
+        return set(d.keys())
+
+    def reachable_gametes_with_counts(self):
+        d = Counter(
+            self.create_gamete_with_crosspoint(i, j)
+            for i in range(2)
+            for j in range(self.n_loci)
+        )
+        return list(d.items())
+
+
 @dataclass
 class Population:
     plants: List[Plant]
@@ -134,7 +158,7 @@ def prob_z_given_xy(z: Plant, x: Plant, y: Plant):
                     out += 1
         return out
 
-    return aux(z.chrom1, x) * aux(z.chrom2, y) / (4 * nl ** 2)
+    return aux(z.chrom1, x) * aux(z.chrom2, y) / (4 * nl**2)
 
 
 def prob_z_given_xy_fast(z: Plant, x: Plant, y: Plant):
@@ -163,7 +187,7 @@ def prob_z_given_xy_fast(z: Plant, x: Plant, y: Plant):
         matches_lower = max(0, min(nl - 1, lmpl) - (nl - lmsu) + 1)
         return matches_upper + matches_lower
 
-    return aux(z.chrom1, x) * aux(z.chrom2, y) / (4 * nl ** 2)
+    return aux(z.chrom1, x) * aux(z.chrom2, y) / (4 * nl**2)
 
 
 def number_of_trials_to_create(p, gamma):

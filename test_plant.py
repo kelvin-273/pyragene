@@ -9,7 +9,7 @@ class TestPlant(unittest.TestCase):
 
     """Test case docstring."""
 
-    def test_plant_cross(self):
+    def test_random_plant_generates_gamete_with_alleles_from_self(self):
         """
         Checking that all alleles are taken from their respective loci.
         """
@@ -22,6 +22,19 @@ class TestPlant(unittest.TestCase):
             cs = format(x.create_gamete(), f"0{n_loci}b")
             for i in range(n_loci):
                 assert cs[i] == su[i] or cs[i] == sl[i]
+
+    def test_generates_all_gametes_simple(self):
+        a = Plant(4, 5, 10)
+        # self.assertEqual(a.create_gamete_with_crosspoint())
+        self.assertEqual(a.create_gamete_with_crosspoint(0, 0), 10)
+        self.assertEqual(a.create_gamete_with_crosspoint(0, 1), 11)
+        self.assertEqual(a.create_gamete_with_crosspoint(0, 2), 9)
+        self.assertEqual(a.create_gamete_with_crosspoint(0, 3), 13)
+        self.assertEqual(a.create_gamete_with_crosspoint(1, 0), 5)
+        self.assertEqual(a.create_gamete_with_crosspoint(1, 1), 4)
+        self.assertEqual(a.create_gamete_with_crosspoint(1, 2), 6)
+        self.assertEqual(a.create_gamete_with_crosspoint(1, 3), 2)
+        
 
     def test_prob_z_given_xy_fast(self):
         """
@@ -54,7 +67,20 @@ class TestPlant(unittest.TestCase):
     def test_all_gametes(self):
         # create plant
         # create set of all gametes
-        pass
+        a = Plant(4, 5, 10)
+        assert sorted(a.reachable_gametes()) == sorted(
+            [
+                5,
+                4,
+                6,
+                2,
+                10,
+                11,
+                9,
+                13
+            ]
+        ), f"reachable_gametes = {a.reachable_gametes()}"
 
     def test_all_intermediates(self):
         pass
+
