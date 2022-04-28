@@ -3,6 +3,7 @@ import random
 
 import plant
 from plant import Plant
+from plant2 import PlantSPC
 
 
 class TestPlant(unittest.TestCase):

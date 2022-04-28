@@ -117,6 +117,9 @@ class Plant:
         )
         return list(d.items())
 
+    def __hash__(self):
+        return (self.chrom1 << self.n_loci) | self.chrom2
+
 
 @dataclass
 class Population:
