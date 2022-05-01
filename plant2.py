@@ -38,7 +38,7 @@ class Plant(ABC):
         pass
 
 
-@dataclass
+@dataclass(order=True)
 class PlantSPC(Plant):
 
     """Plant with single-point crossover"""
@@ -211,6 +211,7 @@ class PlantSPC(Plant):
         out = 0
         for x in pop:
             out |= x.chrom1 | x.chrom2
+        return out
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
-from collections import namedtuple
+from collections import namedtuple, Counter
+from sortedcollections import SortedDict
 from plant import Population, generate_goal
 from plant import prob_z_given_xy_fast, number_of_trials_to_create
 from plant2 import PlantSPC
@@ -9,11 +10,17 @@ def breeding_par(
     n_loci=10, pop_0=[], pruning=True, constraint_time=None, constraint_resource=None
 ):
     Results = namedtuple(
-        "Results", ["n_generations", "n_plants_max", "n_plants_tot", "success"]
+        "Results",
+        [
+            "success",
+            "n_generations",
+            "n_plants_max",
+            "n_plants_tot",
+        ],
     )
     # check feasibility
     if not union(pop_0) == union([generate_goal(n_loci)]):
-        return Results(0, 0, 0, False)
+        return Results(False, 0, 0, 0)
 
     pop = pop_0.copy()
     ideotype = generate_goal(n_loci)
@@ -31,9 +38,7 @@ def breeding_par(
         # pop = filter_non_dominating(pop)
         t += 1
 
-    return Results(
-        t, 0, 0, True
-    )
+    return Results(True, t, 0, 0)
 
 
 def generate_goal(n_loci) -> PlantSPC:
@@ -64,30 +69,48 @@ def dom_gamete(x, y):
 
 
 def generate_all_progeny(n_loci: int, pop: Population):
-    gametes = list({
-        x.gamete_specified(k1)
-        for x in pop
-        for k1 in x.crosspoints()
-    })
-    gametes = filter_non_dominating_gametes(gametes)
-    n_gametes = len(gametes)
+    """
+    Returns a list of all unique progeny that can be produced from the given
+    population.
+    """
+    gametes = list(
+        {x.gamete_specified(k1) for x in pop for k1 in x.crosspoints()}
+    )
+    # n_gametes = len(gametes)
+
+    gametes_fil = filter_non_dominating_gametes(gametes)
+    n_gametes_fil = len(gametes_fil)
+
     # TODO: can we break the symmetry on gametes?
     # return [PlantSPC(n_loci, gx, gy) for gx in gametes for gy in gametes]
     # gonna assume yes, we can
-    return [PlantSPC(n_loci, gametes[i], gametes[j])
-            for i in range(n_gametes)
-            for j in range(i, n_gametes)
-            ]
+    # progeny = [
+    #     PlantSPC(n_loci, gametes[i], gametes[j])
+    #     for i in range(n_gametes)
+    #     # for j in range(i, n_gametes)
+    #     for j in range(n_gametes)
+    # ]
+    progeny_fil = [
+        PlantSPC(n_loci, gametes_fil[i], gametes_fil[j])
+        for i in range(n_gametes_fil)
+        # for j in range(i, n_gametes_fil)
+        for j in range(n_gametes_fil)
+    ]
+
+    # assert sorted(filter_non_dominating(progeny)) == sorted(progeny_fil)
+    return progeny_fil
 
 
 def generate_all_progeny_1(pop: Population):
-    return list({
-        x.cross_specified(y, (k1, k2))
-        for x in pop
-        for y in pop
-        for k1 in x.crosspoints()
-        for k2 in y.crosspoints()
-    })
+    return list(
+        {
+            x.cross_specified(y, (k1, k2))
+            for x in pop
+            for y in pop
+            for k1 in x.crosspoints()
+            for k2 in y.crosspoints()
+        }
+    )
 
 
 def union(pop: Population):
@@ -98,21 +121,67 @@ def union(pop: Population):
     return out
 
 
+class Experiments:
+
+    @staticmethod
+    def basic_tests():
+        """
+        :returns: TODO
+
+        """
+        pass
+
+    @staticmethod
+    def enumerations():
+        """
+        TODO: Docstring for enumerations.
+        """
+        for n_loci in range(1, 17):
+            print(f"n_loci: {n_loci}")
+            res_hom = breeding_par(n_loci, PlantSPC.initial_pop_singles_homo(n_loci))
+            print("hom:", res_hom)
+            res_het = breeding_par(n_loci, PlantSPC.initial_pop_singles_hetero(n_loci))
+            print("het:", res_het)
+            print(
+                [
+                    breeding_par(
+                        n_loci, PlantSPC.initial_pop_random(n_loci, n_loci)
+                    ).n_generations
+                    for _ in range(10)
+                ]
+            )
+            # res_tin = breeding_par(
+            # n_loci,
+            # PlantSPC.initial_pop_trait_introgression(n_loci, n_loci >> 1)
+            # )
+            # print("tin:", res_tin)
+
+    @staticmethod
+    def trait_introgression_dispersion(n_loci):
+        """
+        How do the number of donor loci affect the runtimes
+
+        :n_loci: number of loci per individual plant
+        :returns: TODO
+
+        """
+        for donor_loci in range(n_loci // 2 + 1):
+            results = []
+            for _ in range(100000):
+                pop_0 = PlantSPC.initial_pop_trait_introgression(n_loci, donor_loci)
+                res = breeding_par(n_loci, pop_0)
+                results.append(res)
+            print(f"{donor_loci} / {n_loci}")
+            print(SortedDict(Counter([x.n_generations for x in results])))
+
+
 if __name__ == "__main__":
     from pprint import pprint
     from random import seed
-    seed(1)
 
-    # pprint(generate_all_progeny([PlantSPC(4, 5, 10)]))
-    # print(len(generate_all_progeny([PlantSPC(4, 5, 10)])))
-    # print()
-    print(breeding_par(4, [PlantSPC(4, 5, 10)]))
-    print(breeding_par(10, PlantSPC.initial_pop_trait_introgression(10, 1)))
-    print(PlantSPC.initial_pop_singles_homo(1))
-    print(PlantSPC.initial_pop_singles_homo(2))
-    print(PlantSPC.initial_pop_singles_homo(3))
-    print()
-    n_loci = 32
+    # seed(0)
+
+    Experiments.trait_introgression_dispersion(8)
     # # for i in range(1, (n_loci >> 1) + 1):
     #     # print(f"i: {i}")
     #     # for _ in range(10):
@@ -121,20 +190,3 @@ if __name__ == "__main__":
     #             # PlantSPC.initial_pop_singles_homo(n_loci)
     #         # ))
     #     # print()
-    for n_loci in range(1, 17):
-        print(f"n_loci: {n_loci}")
-        res_hom = breeding_par(
-            n_loci,
-            PlantSPC.initial_pop_singles_homo(n_loci)
-        )
-        print("hom:", res_hom)
-        res_het = breeding_par(
-            n_loci,
-            PlantSPC.initial_pop_singles_hetero(n_loci)
-        )
-        print("het:", res_het)
-        res_tin = breeding_par(
-            n_loci,
-            PlantSPC.initial_pop_trait_introgression(n_loci, n_loci)
-        )
-        print("tin:", res_tin)
