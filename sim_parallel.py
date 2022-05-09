@@ -201,7 +201,7 @@ class Experiments:
         """
         for donor_loci in range(n_loci // 2 + 1):
             results = []
-            for _ in range(100_000):
+            for _ in range(10_000):
                 pop_0 = PlantSPC.initial_pop_trait_introgression(n_loci, donor_loci)
                 res = breeding_par(n_loci, pop_0)
                 results.append(res)
@@ -221,14 +221,10 @@ class Experiments:
         pop_0_unfiltered = PlantSPC.initial_pop_trait_introgression(n_loci, n_loci >> 1)
         print(pop_0_unfiltered)
 
-        pop_0 = [
-            WDataP(x, history=i)
-            for i, x in enumerate(pop_0_unfiltered)
-        ]
+        pop_0 = [WDataP(x, history=i) for i, x in enumerate(pop_0_unfiltered)]
 
         Results = namedtuple(
-            "Results",
-            ["success", "n_generations", "n_plants_max", "n_plants_tot",],
+            "Results", ["success", "n_generations", "n_plants_max", "n_plants_tot",],
         )
         # check feasibility
         if not union(pop_0) == union([generate_goal(n_loci)]):
