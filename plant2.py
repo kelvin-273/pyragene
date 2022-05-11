@@ -100,6 +100,7 @@ class InitialPop(ABC):
     def initial_pop_singles_hetero(n_loci):
         pass
 
+
 @dataclass(order=True)
 class PlantSPC(Crossable, DomStrong):
 
@@ -276,6 +277,11 @@ class PlantSPC(Crossable, DomStrong):
             out |= x.chrom1 | x.chrom2
         return out
 
+    def __str__(self):
+        s1 = format(self.chrom1, f"0{self.n_loci}b")
+        s2 = format(self.chrom2, f"0{self.n_loci}b")
+        return f"({s1}, {s2})"
+
 
 @dataclass
 class WDataG(DomStrong, Unionable):
@@ -309,11 +315,8 @@ class WDataG(DomStrong, Unionable):
         return self.x.__hash__()
 
     def __invert__(self):
-        return WDataG(
-            ~self.x,
-            history=self.history,
-            count=self.count,
-        )
+        return WDataG(~self.x, history=self.history, count=self.count,)
+
 
 @dataclass
 class WDataP(Crossable, DomStrong, Unionable):

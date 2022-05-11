@@ -58,6 +58,7 @@ class BreedingProgram:
         Genotype.format = lambda self: str(self.plant)
 
         Gamete = self._Gamete
+        Gamete.__str__ = lambda g: format(g.gamete, f"0{self._n_loci}b")
 
         Results = namedtuple(
             "Results", ["success", "n_generations", "n_plants_max", "n_plants_tot"],
@@ -167,7 +168,7 @@ class BreedingProgram:
                 print(f"Genotype: {node.format()}\t generation: {self._results.n_generations - depth}")
             elif type(node) is self._Gamete:
                 post_order_traversal(node.parents[0], depth=depth)
-                print(node.gamete)
+                print(node)
             else:
                 raise TypeError(f"Got something funky fresh {node}")
 
