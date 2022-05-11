@@ -15,9 +15,9 @@ import matplotlib.pyplot as plt
 import seaborn as sn
 import numpy as np
 
-import plant as plant
-from plant import Plant, Population, generate_random_plant, generate_goal
-from plant import union, prob_z_given_xy_fast, number_of_trials_to_create
+from plant_models import plant
+from plant_models.plant import Plant, Population, generate_random_plant, generate_goal
+from plant_models.plant import union, prob_z_given_xy_fast, number_of_trials_to_create
 
 
 @dataclass

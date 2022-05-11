@@ -1,7 +1,7 @@
 import unittest
 import math
-from plant2 import PlantSPC
-from enumerators import BreedingProgram
+from plant_models.plant2 import PlantSPC
+from simulators.enumerators import BreedingProgram
 
 class TestClass(unittest.TestCase):
 

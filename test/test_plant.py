@@ -1,9 +1,9 @@
 import unittest
 import random
 
-import plant
-from plant import Plant
-from plant2 import PlantSPC
+from plant_models import plant
+from plant_models.plant import Plant
+from plant_models.plant2 import PlantSPC
 
 
 class TestPlant(unittest.TestCase):
