@@ -2,7 +2,7 @@ from math import log, log2
 from dataclasses import dataclass
 from collections import Counter
 
-from utils import *
+from eugene.utils import *
 
 Chromosome = NewType("Chromosome", int)
 

@@ -1,7 +1,9 @@
 import unittest
 import math
-from plant_models.plant2 import PlantSPC
-from simulators.enumerators import BreedingProgram
+
+from eugene.plant_models.plant2 import PlantSPC
+from eugene.simulators.enumerators import BreedingProgram
+
 
 class TestClass(unittest.TestCase):
 

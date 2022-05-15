@@ -1,8 +1,8 @@
 import unittest
 
-from simulators import sim
-from plant_models import plant
-from simulators.sim import PopulationGenerators
+from eugene.simulators import sim
+from eugene.plant_models import plant
+from eugene.simulators.sim import PopulationGenerators
 
 
 class TestSimulation(unittest.TestCase):
@@ -50,7 +50,7 @@ class TestSimulation(unittest.TestCase):
             assert res.n_generations <= args.n_remaining_loci
 
     def test_generate_single_plant(self):
-        from simulators.sim import PopulationGenerators
+        from eugene.simulators.sim import PopulationGenerators
         n_loci = 8
         for n_remaining_loci in range(n_loci):
             args = sim.Args(
@@ -78,8 +78,8 @@ class TestSimulation(unittest.TestCase):
         z = sim.choose_intermediate_target_uniform(x, y)
 
     def test_generate_initial_pop_trait_introgression(self):
-        from simulators.sim import PopulationGenerators
-        from utils import count_ones
+        from eugene.simulators.sim import PopulationGenerators
+        from eugene.utils import count_ones
         n_loci = 8
         for n_remaining_loci in range(n_loci // 2):
             args = sim.Args(
@@ -103,8 +103,8 @@ class TestSimulation(unittest.TestCase):
                 """
 
     def test_generate_initial_pop_trait_introgression2(self):
-        from simulators.sim import PopulationGenerators
-        from utils import count_ones
+        from eugene.simulators.sim import PopulationGenerators
+        from eugene.utils import count_ones
         n_loci = 8
         for n_remaining_loci in range(n_loci // 2):
             args = sim.Args(
