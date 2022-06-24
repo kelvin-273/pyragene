@@ -1,8 +1,17 @@
+from itertools import groupby, tee
+from collections import Counter, namedtuple
 from eugene.simulators.enumerators import BreedingProgram
 from eugene.plant_models.plant2 import PlantSPC
 
 def count_contiguous_chunks(plant: PlantSPC) -> int:
     """
+    Counts the number of contiguous chunks in the given genotype.
+    Assumes that the input plant is homozygous.
+
+    Example:
+    11110001101110011 -> 7 contiguous chunks
+    11110001101110011
+
     >>> f = lambda n: count_contiguous_chunks(PlantSPC(8, n, n))
     >>> f(0)
     1
@@ -37,7 +46,7 @@ if __name__ == "__main__":
     n_loci = 10
     data = []
     for n_holes in range((n_loci >> 1) + 1):
-        for _ in range(100):
+        for _ in range(1000):
             runner = BreedingProgram(n_loci, PlantSPC)
             pop_0 = PlantSPC.initial_pop_trait_introgression(n_loci, n_holes)
             # make the population homozygous
@@ -71,20 +80,39 @@ if __name__ == "__main__":
             })
 
     import matplotlib.pyplot as plt
+    # plot the number of generations against the number of chunks
+
+    data.sort(key=lambda x: (x["n_holes"], x["n_generations"]))
+
+    def f(accessor):
+        for nh, column in groupby(data, key=lambda x: x[accessor]):
+            l, r = tee(column)
+            total = len(list(l))
+            for t, xs in groupby(r, key=lambda x: x["n_generations"]):
+                yield (nh, t, len(list(xs)) / total)
+
+    data_holes = list(f("n_holes"))
+
     plt.scatter(
-        [x["n_holes"] for x in data],
-        [x["n_generations"] for x in data]
+        [nh for nh, _, _ in data_holes],
+        [t for _, t, _ in data_holes]
     )
-    plt.title("number of generations to introgress n holes")
+    for nh, t, c in data_holes:
+        plt.annotate(c, (nh, t))
+    plt.title("distribution of lower-bound times to introgress n holes")
     plt.ylabel("number of generations")
     plt.xlabel("number of holes")
     plt.show()
 
+    # plot the number generations against the number of chunks
+    data_chunks = list(f("n_chunks"))
     plt.scatter(
-        [x["n_chunks"] for x in data],
-        [x["n_generations"] for x in data]
+        [nc for nc, _, _ in data_chunks],
+        [t for _, t, _ in data_chunks]
     )
-    plt.title("number of generations to introgress n chunks")
+    for nc, t, c in data_chunks:
+        plt.annotate(c, (nc, t))
+    plt.title("distribution of lower-bound times to combine n non-overlapping chunks")
     plt.ylabel("number of generations")
     plt.xlabel("number of chunks")
     plt.show()

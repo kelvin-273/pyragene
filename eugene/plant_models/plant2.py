@@ -235,6 +235,30 @@ class PlantSPC(Crossable, DomStrong):
 
         return elite_pop + donor_pop
 
+    def initial_pop_trait_introgression_homo(
+        n_loci: int, n_holes: int, n_elite=1, n_donor=1
+    ):
+        """
+        Creates an initial population for trait introgression.
+        Output list is divided into [elite_pop : donor_pop].
+        Elite and donor populations each have a complimentary set of homozygous
+        loci and loci not in that set are hetrozygous or homozygous
+        unfavourable.
+        """
+        assert n_holes <= n_loci // 2
+        holes = sample(range(n_loci), n_holes)
+
+        bitbed = (1 << n_loci) - 1
+        elite_mask = bitbed
+        for i in holes:
+            elite_mask ^= 1 << i
+        donor_mask = bitbed ^ elite_mask
+
+        elite_pop = [PlantSPC(n_loci, elite_mask, elite_mask)]
+        donor_pop = [PlantSPC(n_loci, donor_mask, donor_mask)]
+
+        return elite_pop + donor_pop
+
     @staticmethod
     def initial_pop_random(n_loci: int, n_individuals: int):
         """

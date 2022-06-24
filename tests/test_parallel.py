@@ -54,7 +54,7 @@ class TestClass(unittest.TestCase):
                 res.n_generations, [0, 2, 3, 3, 4, 4, 4, 4, 5][n_loci-1],
                 msg="Incorrect worst-case for homozygous singles"
             )
-        for n_loci in range(1, 10):
+        for n_loci in range(1, 8):
             aux(n_loci)
 
     def test_get_paths(self):
@@ -68,8 +68,3 @@ class TestClass(unittest.TestCase):
         # Want to test that the path is one run
         runner.print_path_to_goal()
         raise Exception("Test not implemented")
-
-
-if __name__ == "__main__":
-    C = TestClass()
-    C.test_get_paths()
