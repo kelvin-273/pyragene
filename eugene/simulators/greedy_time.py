@@ -62,7 +62,7 @@ def extract_chunks_from_genotype(n_loci, genotype: PlantSPC):
             j += 1
         elif e1 + 1 < s2:
             assert s1 < e1 + 1 < s2 <= e2
-            if used1[i]:
+            if not used1[i]:
                 out.append(c1)
                 used1[i] = True
             i += 1
