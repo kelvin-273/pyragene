@@ -35,7 +35,6 @@ class TestPlant(unittest.TestCase):
         self.assertEqual(a.create_gamete_with_crosspoint(1, 1), 4)
         self.assertEqual(a.create_gamete_with_crosspoint(1, 2), 6)
         self.assertEqual(a.create_gamete_with_crosspoint(1, 3), 2)
-        
 
     def test_prob_z_given_xy_fast(self):
         """
@@ -85,3 +84,12 @@ class TestPlant(unittest.TestCase):
     def test_all_intermediates(self):
         pass
 
+    def test_wd(self):
+        from eugene.plant_models.plant2 import wd_plant
+        WDPlant = wd_plant(PlantSPC)
+        a = WDPlant(4, 5, 10)
+        b = WDPlant(4, 5, 0)
+        self.assertTrue(hasattr(a, 'dom_weak'))
+        self.assertTrue(a.dom_weak(b))
+        self.assertFalse(b.dom_weak(a))
+        self.assertEqual(a.gamete_specified((0, 2)), 9)

@@ -411,8 +411,20 @@ class WDataP(Crossable, DomStrong, Unionable):
         )
 
     def __hash__(self):
-        return (self.chrom1 << self.n_loci) & self.chrom2
+        return hash((self.chrom1 << self.n_loci) & self.chrom2)
 
+
+def wd_plant(plant_model):
+    class WD(plant_model):
+
+        """Class that contains the historical data of the plant"""
+
+        def __init__(self, *args, **kwargs):
+            """TODO: to be defined. """
+            plant_model.__init__(self, *args, **kwargs)
+            self.histories = None
+
+    return WD
 
 if __name__ == "__main__":
     x = PlantSPC(4, 5, 10)
