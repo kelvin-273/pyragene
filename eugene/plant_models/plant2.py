@@ -355,6 +355,7 @@ class WDataP(Crossable, DomStrong, Unionable):
     def n_loci(self):
         return self.x.n_loci
 
+    # TODO: Dependence on fixed ploidy level should be removed <05-07-22> #
     @property
     def chrom1(self):
         return self.x.chrom1
@@ -396,20 +397,27 @@ class WDataP(Crossable, DomStrong, Unionable):
         return self.x.dom_weak(other.x)
 
     def dom_strong(self, other):
-        return self.x.dom_weak(other.x)
+        return self.x.dom_strong(other.x)
 
+    @classmethod
     def union(pop):
         raise Exception("not implemented")
 
+    @classmethod
     def is_feasible(pop):
         raise Exception("not implemented")
 
     def goal(n_loci):
+        raise DeprecationWarning(
+            """this might not be necessary given that we set the goal in the
+            breeding program class"""
+        )
         return WDataP(
             PlantSPC(n_loci, (1 << n_loci) - 1, (1 << n_loci) - 1),
             history=None,
         )
 
+    # TODO: Is there a way to automatically derive this <05-07-22> #
     def __hash__(self):
         return hash((self.chrom1 << self.n_loci) & self.chrom2)
 
