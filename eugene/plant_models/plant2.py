@@ -408,7 +408,6 @@ class WDataP(Crossable, DomStrong, Unionable):
         return WDataP(
             PlantSPC(n_loci, (1 << n_loci) - 1, (1 << n_loci) - 1),
             history=None,
-            counts=None,
         )
 
     def __hash__(self):
