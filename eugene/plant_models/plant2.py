@@ -350,7 +350,6 @@ class WDataP(Crossable, DomStrong, Unionable):
     def __init__(self, x, *, history, count=1):
         self.x = x
         self.history = history
-        self.count = count
 
     @property
     def n_loci(self):
@@ -379,10 +378,8 @@ class WDataP(Crossable, DomStrong, Unionable):
         return WDataG(self.x.gamete_random(), history=self.history, count=self.count,)
 
     def cross_specified(self, other, crosspoints):
-        # TODO: is hte counts meant to be the product or 2*the product
         return WDataP(
             self.x.cross_specified(other.x, crosspoints),
-            counts=self.counts * other.counts,
             history=(self.history, other.history),
         )
 
@@ -393,7 +390,6 @@ class WDataP(Crossable, DomStrong, Unionable):
         return WDataP(
             PlantSPC(n_loci, chrom1.x, chrom2.x),
             history=(chrom1.history, chrom2.history),
-            count=chrom1.count * chrom2.count,
         )
 
     def dom_weak(self, other):
