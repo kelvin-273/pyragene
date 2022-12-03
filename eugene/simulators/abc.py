@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod, abstractclassmethod
 
 class BreedingProgram(ABC):
 
-    """Abstract Base class for Breeding Program"""
+    """Abstract base class for Breeding Program"""
 
     @abstractmethod
     def __init__(self, n_loci, plant_type):

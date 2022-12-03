@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict, namedtuple
+from dataclasses import dataclass
 
 
 class BreedingProgram:
@@ -13,17 +14,6 @@ class BreedingProgram:
         self._pop_0 = None
         self._ideotype = None
         self._constraint_time = None
-
-        self._Genotype = namedtuple("Genotype", [
-            "plant",
-            "histories",
-        ])
-
-        self._Gamete = namedtuple("Gametes", [
-            "gamete",
-            "parents",
-            "counts",
-        ])
 
     def set_init_pop(self, pop_0):
         """Set the initial population unwrapped"""
@@ -51,14 +41,36 @@ class BreedingProgram:
         if not isinstance(self._ideotype, self._plant_type):
             raise ValueError("ideotype must be a plant of the same type")
 
-        # create tuple types for genotypes, gametes, and Results
-        Genotype = self._Genotype
-        Genotype.crosspoints = lambda self: self.plant.crosspoints()
-        Genotype.gamete_specified = lambda self, crosspoint: self.plant.gamete_specified(crosspoint)
-        Genotype.format = lambda self: str(self.plant)
+        """
+        Create wrappers for Genotypes and Gametes
+        Gamete.histories   :: [Genotype]
+        Genotype.histories :: (Gamete, Gamete)
+        """
 
-        Gamete = self._Gamete
-        Gamete.__str__ = lambda g: format(g.gamete, f"0{self._n_loci}b")
+        @dataclass
+        class Genotype:
+            plant: self._plant_type
+            histories: tuple
+
+            def crosspoints(self):
+                return self.plant.crosspoints()
+
+            def gamete_specified(self, crosspoint):
+                return self.plant.gamete_specified(crosspoint)
+
+            def format(self):
+                return str(self.plant)
+
+        @dataclass
+        class Gamete:
+            gamete: int
+            histories: list
+
+            def __str__(g):
+                return format(g.gamete, f"0{self._n_loci}")
+
+        self._Genotype = Genotype
+        self._Gamete = Gamete
 
         Results = namedtuple(
             "Results", ["success", "n_generations", "n_plants_max", "n_plants_tot"],
@@ -119,24 +131,6 @@ class BreedingProgram:
                         progeny[p] = Genotype(p, [(g1, g2)])
             progeny = list(progeny.values())
 
-            progeny_fil_old = [
-                Genotype(
-                    plant=self._plant_type.from_gametes(
-                        self._n_loci,
-                        gametes_fil[i].gamete,
-                        gametes_fil[j].gamete
-                    ),
-                    histories=(
-                        gametes_fil[i],
-                        gametes_fil[j]
-                    ),
-                )
-                for i in range(n_gametes_fil)
-                # for j in range(i, n_gametes_fil)
-                for j in range(n_gametes_fil)
-            ]
-
-            # assert sorted(filter_non_dominating(progeny)) == sorted(progeny_fil)
             pop = progeny
             self._pop_current = pop
 
@@ -194,7 +188,6 @@ def filter_non_dominating_gametes(gametes):
 
 def dom_gamete(x, y):
     """
-    Returns tru if y dominates x i.e. x ≤ y.
+    Returns true if y dominates x i.e. x ≤ y.
     """
     return not (x & ~y)
-

@@ -33,9 +33,11 @@ class Crossable(ABC):
     def cross_specified(self, other, crosspoints):
         pass
 
-    @abstractmethod
     def cross_random(self, other):
-        pass
+        self.cross_specified(other, (
+            self.random_crosspoint(),
+            other.random_crosspoint()
+        ))
 
     @abstractmethod
     def from_gametes(*args):
@@ -312,10 +314,9 @@ class WDataG(DomStrong, Unionable):
 
     """Docstring for WData. """
 
-    def __init__(self, x, *, history, count=1):
+    def __init__(self, x, *, history):
         self.x = x
         self.history = history
-        self.count = count
 
     def dom_gamete(self, other):
         return not (other.x & ~self.x)
@@ -339,7 +340,7 @@ class WDataG(DomStrong, Unionable):
         return self.x.__hash__()
 
     def __invert__(self):
-        return WDataG(~self.x, history=self.history, count=self.count,)
+        return WDataG(~self.x, history=self.history)
 
 
 @dataclass
