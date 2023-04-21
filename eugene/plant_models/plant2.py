@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from random import randint, randrange, sample
 from typing import NewType
 from abc import ABC, abstractmethod, abstractclassmethod
+from bitarray import frozenbitarray
+from bitarray.util import urandom, zeros
 
 
 Chromosome = NewType("Chromosome", int)
@@ -34,10 +36,9 @@ class Crossable(ABC):
         pass
 
     def cross_random(self, other):
-        self.cross_specified(other, (
-            self.random_crosspoint(),
-            other.random_crosspoint()
-        ))
+        self.cross_specified(
+            other, (self.random_crosspoint(), other.random_crosspoint())
+        )
 
     @abstractmethod
     def from_gametes(*args):
@@ -309,6 +310,55 @@ class PlantSPC(Crossable, DomStrong):
         return f"({s1}, {s2})"
 
 
+@dataclass(order=True)
+class PlantSPCBitarray:
+
+    """Plant with single-point crossover"""
+
+    n_loci: int
+    chrom1: frozenbitarray
+    chrom2: frozenbitarray
+
+    @staticmethod
+    def initial_pop_random(n_loci: int, n_individuals: int):
+        """
+        Generates a population of uniform randomly generated plants such that
+        the ideotype is in its span.
+        """
+        out = [
+            # PlantSPC(n_loci, randrange(1 << n_loci), randrange(1 << n_loci))
+            PlantSPCBitarray(
+                n_loci, frozenbitarray(urandom(n_loci)), frozenbitarray(urandom(n_loci))
+            )
+            for _ in range(n_individuals)
+        ]
+        while PlantSPCBitarray.union(n_loci, out) != frozenbitarray(~zeros(n_loci)):
+            out = [
+                PlantSPCBitarray(
+                    n_loci,
+                    frozenbitarray(urandom(n_loci)),
+                    frozenbitarray(urandom(n_loci)),
+                )
+                for _ in range(n_individuals)
+            ]
+        return out
+
+    @staticmethod
+    def union(n_loci, pop) -> int:
+        """
+        Takes the union of all chromosomes in the population.
+        Useful for testing feasibility.
+
+        :pop: List of individual PlantSPC's
+        :returns: integer containing the bits after union of all chromosomes in
+            the population
+        """
+        out = zeros(n_loci)
+        for x in pop:
+            out |= x.chrom1 | x.chrom2
+        return frozenbitarray(out)
+
+
 @dataclass
 class WDataG(DomStrong, Unionable):
 
@@ -414,8 +464,7 @@ class WDataP(Crossable, DomStrong, Unionable):
             breeding program class"""
         )
         return WDataP(
-            PlantSPC(n_loci, (1 << n_loci) - 1, (1 << n_loci) - 1),
-            history=None,
+            PlantSPC(n_loci, (1 << n_loci) - 1, (1 << n_loci) - 1), history=None,
         )
 
     # TODO: Is there a way to automatically derive this <05-07-22> #
@@ -434,6 +483,7 @@ def wd_plant(plant_model):
             self.histories = None
 
     return WD
+
 
 if __name__ == "__main__":
     x = PlantSPC(4, 5, 10)

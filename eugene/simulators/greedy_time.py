@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 
 from .abc import BreedingProgram
-from ..plant_models.plant2 import PlantSPC
+from ..plant_models.plant2 import PlantSPC, PlantSPCBitarray
 
 
 class BreedingProgramGreedyTime(BreedingProgram):
@@ -48,21 +48,28 @@ class BreedingProgramGreedyTime(BreedingProgram):
         # Wrap genotypes
         pop = [Genotype(x, None) for x in self._pop_0]
 
-        # construct the set of segments the initial population
-        wrapped_gamete_store = {}
-        segments = []
+        # TODO: for histories
+        # # construct the set of segments the initial population
+        # wrapped_gamete_store = {}
+        # segments = []
+        # for x in pop:
+        #     for s, e, g in segments_from_genotype(self._n_loci, x.plant):
+        #         if g not in wrapped_gamete_store:
+        #             wrapped_gamete_store[g] = Gamete(g, [])
+        #         wg = wrapped_gamete_store[g]
+        #         wg.histories.append(x)
+        #         segments.append((s, e, wg))
+
+        segments = [None] * self._n_loci
         for x in pop:
             for s, e, g in segments_from_genotype(self._n_loci, x.plant):
-                if g not in wrapped_gamete_store:
-                    wrapped_gamete_store[g] = Gamete(g, [])
-                wg = wrapped_gamete_store[g]
-                wg.histories.append(x)
-                segments.append((s, e, wg))
+                if segments[s] is None or e > segments[s][1]:
+                    segments[s] = (s, e, g)
 
         # choose the segments to use by largest of extension
         # NOTE: min_segment_cover raises a ValueError if infeasible
-        segments_best = min_segment_cover(self._n_loci, segments)
-        assert segments_best == sorted(segments_best)
+        segments_best = min_segment_cover(self._n_loci, [c for c in segments if c is not None])
+        # assert segments_best == sorted(segments_best)
 
         # construct dag
         def aux(segments_best):
@@ -86,11 +93,20 @@ class BreedingProgramGreedyTime(BreedingProgram):
             new_seg = (sl, er, new_gam)
             return new_seg
 
-        _, _, wgam = aux(segments_best)
-        ideotype = Genotype(
-            self._ideotype, (wgam, wgam)
+        return Gamete(
+            PlantSPC(
+                self._n_loci,
+                (1 << self._n_loci) - 1,
+                (1 << self._n_loci) - 1,
+            ),
+            None
         )
-        return ideotype
+        # TODO: uncomment this for actual history
+        # _, _, wgam = aux(segments_best)
+        # ideotype = Genotype(
+        #     self._ideotype, (wgam, wgam)
+        # )
+        # return ideotype
 
 
 def segments_from_gamete(n_loci: int, gamete: int) -> list:
@@ -105,24 +121,28 @@ def segments_from_gamete(n_loci: int, gamete: int) -> list:
     >>> extract_segments_from_gamete(10, int('0111000110', base=2))
     [(1, 3, 454), (7, 8, 454)]
     """
-    assert 0 <= gamete, f"gamete is a negative number {gamete}"
-    assert gamete < 1 << n_loci, f"gamete has more than {n_loci} loci {gamete}"
-    out = []
+    # assert 0 <= gamete, f"gamete is a negative number {gamete}"
+    # assert gamete < 1 << n_loci, f"gamete has more than {n_loci} loci {gamete}"
+    out = [None] * ((n_loci + 1) // 2)
+    out_i = 0
     in_segment = False
     s = e = None
     # traverse alleles in reverse order
     for i in range(n_loci):
-        allele = (gamete >> i) & 1
+        # allele = (gamete >> i) & 1    # for bigints
+        allele = gamete[i]  # for bitarrays
         if allele:
             if not in_segment:
                 e = n_loci - 1 - i
             s = n_loci - 1 - i
         elif not allele and in_segment:
-            out.append((s, e, gamete))
+            out[out_i] = (s, e, gamete)
+            out_i += 1
         in_segment = bool(allele)
     if in_segment:
-        out.append((s, e, gamete))
-    return list(reversed(out))
+        out[out_i] = (s, e, gamete)
+        out_i += 1
+    return [out[i] for i in reversed(range(out_i))]
 
 
 def segments_from_genotype(n_loci: int, genotype: PlantSPC) -> list:
@@ -137,10 +157,14 @@ def segments_from_genotype(n_loci: int, genotype: PlantSPC) -> list:
     q2 = segments_from_gamete(n_loci, genotype.chrom2)
 
     used1 = [False] * len(q1)
-    used2 = [False] * len(q1)
+    used2 = [False] * len(q2)
 
     i = j = 0
-    out = []
+    out = [None] * max(
+        len(q1) + len(q1),
+        n_loci - 1
+    )
+    out_i = 0
 
     # oh dear god, does this even work?
     while i < len(q1) and j < len(q2):
@@ -154,27 +178,51 @@ def segments_from_genotype(n_loci: int, genotype: PlantSPC) -> list:
         elif s1 <= s2 and e1 >= e2:
             j += 1
         elif e1 + 1 < s2:
-            assert s1 < e1 + 1 < s2 <= e2
+            # assert s1 < e1 + 1 < s2 <= e2
             if not used1[i]:
-                out.append(c1)
+                out[out_i] = c1
+                out_i += 1
                 used1[i] = True
             i += 1
         elif e2 == n_loci - 1:
-            out.append((s1, e2, PlantSPC(n_loci, g1, g2).gamete_specified((0, e1 + 1))))
+            # out[out_i] = (s1, e2, PlantSPC(n_loci, g1, g2).gamete_specified((0, e1 + 1)))
+            out[out_i] = (s1, e2, 0)
+            out_i += 1
             used1[i] = used2[j] = True
             # break and don't use any more segments
             i = len(q1)
             j = len(q2)
         else:
-            assert e2 < n_loci - 1
-            out.append((s1, e2, PlantSPC(n_loci, g1, g2).gamete_specified((0, e1 + 1))))
+            # assert e2 < n_loci - 1
+            # out[out_i] = (s1, e2, PlantSPC(n_loci, g1, g2).gamete_specified((0, e1 + 1)))
+            out[out_i] = (s1, e2, 0)
+            out_i += 1
             used1[i] = used2[j] = True
             i += 1
 
+    out = out[:out_i]
     return out + q1[i:] + q2[j:]  # works because i == len(q1) or j == len(q2)
 
 
 def min_segment_cover(n_loci, segments):
+    n_segments = len(segments)
+    e_covered = -1
+    i = 0
+    out = [None] * n_loci
+    j = 0
+    while i < n_segments and e_covered < n_loci - 1:
+        c_next = s_next, e_next, g_next = segments[i]
+        while i < n_segments and segments[i][0] <= e_covered + 1:
+            c = s, e, g = segments[i]
+            if s <= e_covered + 1 <= e and e > e_next:
+                c_next = s_next, e_next, g_next = c
+            i += 1
+        out[j] = c_next
+        j += 1
+        e_covered = e_next
+
+
+def min_segment_cover_old(n_loci, segments):
     segments.sort(key=lambda seg: (seg[0], -seg[1]))
     n_segments = len(segments)
     e_covered = -1
