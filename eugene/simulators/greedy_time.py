@@ -93,20 +93,21 @@ class BreedingProgramGreedyTime(BreedingProgram):
             new_seg = (sl, er, new_gam)
             return new_seg
 
-        return Gamete(
-            PlantSPC(
-                self._n_loci,
-                (1 << self._n_loci) - 1,
-                (1 << self._n_loci) - 1,
-            ),
-            None
-        )
-        # TODO: uncomment this for actual history
-        # _, _, wgam = aux(segments_best)
-        # ideotype = Genotype(
-        #     self._ideotype, (wgam, wgam)
+        # # Shortcut tree evaluation
+        # return Gamete(
+        #     PlantSPC(
+        #         self._n_loci,
+        #         (1 << self._n_loci) - 1,
+        #         (1 << self._n_loci) - 1,
+        #     ),
+        #     None
         # )
-        # return ideotype
+
+        _, _, wgam = aux(segments_best)
+        ideotype = Genotype(
+            self._ideotype, (wgam, wgam)
+        )
+        return ideotype
 
 
 def segments_from_gamete(n_loci: int, gamete: int) -> list:
@@ -185,8 +186,8 @@ def segments_from_genotype(n_loci: int, genotype: PlantSPC) -> list:
                 used1[i] = True
             i += 1
         elif e2 == n_loci - 1:
-            # out[out_i] = (s1, e2, PlantSPC(n_loci, g1, g2).gamete_specified((0, e1 + 1)))
-            out[out_i] = (s1, e2, 0)
+            out[out_i] = (s1, e2, PlantSPC(n_loci, g1, g2).gamete_specified((0, e1 + 1)))
+            # out[out_i] = (s1, e2, 0)
             out_i += 1
             used1[i] = used2[j] = True
             # break and don't use any more segments
@@ -194,8 +195,8 @@ def segments_from_genotype(n_loci: int, genotype: PlantSPC) -> list:
             j = len(q2)
         else:
             # assert e2 < n_loci - 1
-            # out[out_i] = (s1, e2, PlantSPC(n_loci, g1, g2).gamete_specified((0, e1 + 1)))
-            out[out_i] = (s1, e2, 0)
+            out[out_i] = (s1, e2, PlantSPC(n_loci, g1, g2).gamete_specified((0, e1 + 1)))
+            # out[out_i] = (s1, e2, 0)
             out_i += 1
             used1[i] = used2[j] = True
             i += 1
