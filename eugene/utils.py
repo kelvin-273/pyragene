@@ -57,7 +57,12 @@ def random_distribute_instance(n_loci):
     return state
 
 
-def distribute_instance_to_ranges(instance_array: List[int]):
+def distribute_instance_to_ranges(instance_array: List[int]) -> List[Tuple[int, int]]:
+    """
+    Given a distribute instance, returns an array of ranges
+    [(s_0, e_0), ..., (s_{m-1}, e_{m-1})] where m is the number of genotypes in
+    the initial population.
+    """
     d = {}
     for i, x in enumerate(instance_array):
         if x in d:
