@@ -1,6 +1,6 @@
 from bitarray import frozenbitarray
 from dataclasses import dataclass
-from .abstract_plants import Genotype, Dominance, Diploid
+from .abstract_plants import Genotype, Dominance, Diploid, Crossover
 
 
 @dataclass
@@ -22,7 +22,7 @@ class DomBaseGenotype(Dominance):
         return (
             DomBaseGamete.dom(x.upper(), y.upper())
             and DomBaseGamete.dom(x.lower(), y.lower())
-            or DomBaseGamete.dom(x.upper(), y.lower())
+            or  DomBaseGamete.dom(x.upper(), y.lower())
             and DomBaseGamete.dom(x.lower(), y.upper())
         )
 
@@ -31,3 +31,8 @@ class DomBaseGamete(Dominance):
     @staticmethod
     def dom(gx: BaseGamete, gy: BaseGamete):
         return (gx.gamete | ~gy.gamete).all()
+
+
+class BaseCrossoverSPC(Crossover):
+    def cross(args):
+        pass

@@ -71,3 +71,13 @@ class InitialPop(ABC):
     @abstractmethod
     def initial_pop_singles_hetero(n_loci):
         pass
+
+
+class Crossover(ABC):
+
+    """Abstract class for crossovers. These are classes that implement cross"""
+
+    @staticmethod
+    @abstractmethod
+    def cross(n_loci, x: "Genotype"):
+        pass
