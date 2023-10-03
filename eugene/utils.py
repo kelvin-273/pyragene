@@ -8,9 +8,7 @@ def count_ones(x: int):
     Returns the number of one bits in the integer
     """
     if x < 0:
-        raise ValueError(
-            "Gave negative int and don't know how to deal with this yet"
-        )
+        raise ValueError("Gave negative int and don't know how to deal with this yet")
     out = 0
     while x > 0:
         x, r = x >> 1, x & 1
@@ -50,7 +48,7 @@ def random_distribute_instance(n_loci):
     max_val = 0
     for i in range(1, n_loci):
         next_val = randint(0, max_val)
-        if next_val >= state[i-1]:
+        if next_val >= state[i - 1]:
             next_val += 1
         state[i] = next_val
         max_val = max(max_val, next_val)
@@ -119,9 +117,7 @@ def max_repeated_wedges(dist_arr: List[int]) -> int:
 
     # construct graph
     n_diff = n_loci - 1
-    classlist = [
-        tuple(sorted((dist_arr[i], dist_arr[i + 1]))) for i in range(n_diff)
-    ]
+    classlist = [tuple(sorted((dist_arr[i], dist_arr[i + 1]))) for i in range(n_diff)]
     adjacent = [
         [classlist[i] == classlist[j] and i != j for j in range(n_diff)]
         for i in range(n_diff)
@@ -157,6 +153,28 @@ def max_repeated_wedges(dist_arr: List[int]) -> int:
     return aux(0)
 
 
+def distribute_instance_to_isolated_subproblems(
+    instance: List[int],
+) -> List[Tuple[int, int]]:
+    n_pop = max(instance) + 1
+    s = {}
+    e = {}
+    for i, x in enumerate(instance):
+        e[x] = i
+        if x not in s:
+            s[x] = i
+
+    ranges = sorted([(s[x], e[x]) for x in range(n_pop)])
+    chosen = [True] * n_pop
+    for i in range(n_pop - 1):
+        s1, e1 = ranges[i]
+        s2, e2 = ranges[i + 1]
+        if e1 > s2:
+            ranges[i + 1] = (s1, max(e2, e1))
+            chosen[i] = False
+    return [se for i, se in enumerate(ranges) if chosen[i]]
+
+
 def main1():
     for ia in gen_distribute_instances(20):
         print(ia)
@@ -172,5 +190,13 @@ def main2():
         print()
 
 
+def main3():
+    for n_loci in range(1, 14):
+        for case in gen_distribute_instances(n_loci):
+            iso_probs = distribute_instance_to_isolated_subproblems(case)
+            if len(iso_probs) == 1:
+                print(case, iso_probs, sep="\t")
+
+
 if __name__ == "__main__":
-    main2()
+    main3()
