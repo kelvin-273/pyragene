@@ -16,16 +16,6 @@ def count_ones(x: int):
     return out
 
 
-def isolated_subproblems_ranges(xs: List[Tuple[int, int]]):
-    assert len(xs) > 0
-    assert all(s <= e for s, e in xs)
-    xs = sorted(xs)
-    s_curr, e_curr = xs[0]
-    for i in range(1, len(xs)):
-        s, e = xs[i]
-        pass
-
-
 def gen_distribute_instances(n_loci):
     state = [0] * n_loci
 
@@ -55,7 +45,7 @@ def random_distribute_instance(n_loci):
     return state
 
 
-def distribute_instance_to_ranges(instance_array: List[int]) -> List[Tuple[int, int]]:
+def distribute_to_ranges(instance_array: List[int]) -> List[Tuple[int, int]]:
     """
     Given a distribute instance, returns an array of ranges
     [(s_0, e_0), ..., (s_{m-1}, e_{m-1})] where m is the number of genotypes in
@@ -71,7 +61,7 @@ def distribute_instance_to_ranges(instance_array: List[int]) -> List[Tuple[int, 
     return list(d.values())
 
 
-def distribute_instance_to_index_lists(instance_array: List[int]):
+def distribute_to_index_lists(instance_array: List[int]):
     d = {}
     for i, x in enumerate(instance_array):
         if x in d:
@@ -90,7 +80,7 @@ def print_lines(lines):
 
 
 def print_lines_with_markings(instance_array):
-    indexes = distribute_instance_to_index_lists(instance_array)
+    indexes = distribute_to_index_lists(instance_array)
     n = max(gen[-1] for gen in indexes) + 1
     indexes.sort()
     for gen in indexes:
@@ -153,7 +143,7 @@ def max_repeated_wedges(dist_arr: List[int]) -> int:
     return aux(0)
 
 
-def distribute_instance_to_isolated_subproblems(
+def distribute_to_isolated_subproblems(
     instance: List[int],
 ) -> List[Tuple[int, int]]:
     n_pop = max(instance) + 1
@@ -178,7 +168,7 @@ def distribute_instance_to_isolated_subproblems(
 def main1():
     for ia in gen_distribute_instances(20):
         print(ia)
-        # print_lines(distribute_instance_to_ranges(ia))
+        # print_lines(distribute_to_ranges(ia))
         print_lines_with_markings(ia)
         print()
 
@@ -193,7 +183,7 @@ def main2():
 def main3():
     for n_loci in range(1, 14):
         for case in gen_distribute_instances(n_loci):
-            iso_probs = distribute_instance_to_isolated_subproblems(case)
+            iso_probs = distribute_to_isolated_subproblems(case)
             if len(iso_probs) == 1:
                 print(case, iso_probs, sep="\t")
 
