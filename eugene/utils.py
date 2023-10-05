@@ -208,7 +208,7 @@ def sanitise_distribute_array(dist_array: List[int]) -> List[int]:
     out = dist_array.copy()
     d = {dist_array[0]: 0}
     dx_max = 0
-    for i in range(1, len(dist_array)):
+    for i in range(len(dist_array)):
         x = dist_array[i]
         if x not in d:
             dx_max += 1
