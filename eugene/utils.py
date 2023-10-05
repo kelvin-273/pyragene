@@ -173,7 +173,7 @@ def distribute_to_isolated_subproblems(
 
 def distribute_lower_bound(instance_array):
     n_loci = len(instance_array)
-    n_pop = max(len(set(instance_array))) + 1
+    n_pop = len(set(instance_array)) + 1
     return ceil((n_loci + n_pop) / 2)
 
 
