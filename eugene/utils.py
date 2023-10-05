@@ -1,6 +1,6 @@
-from random import randint, randrange, sample, choice
-from typing import List, Optional, NewType, Callable, Tuple
-from collections import namedtuple
+from math import ceil
+from random import randint
+from typing import List, Tuple
 
 
 def count_ones(x: int):
@@ -8,7 +8,9 @@ def count_ones(x: int):
     Returns the number of one bits in the integer
     """
     if x < 0:
-        raise ValueError("Gave negative int and don't know how to deal with this yet")
+        raise ValueError(
+            "Gave negative int and don't know how to deal with this yet"
+        )
     out = 0
     while x > 0:
         x, r = x >> 1, x & 1
@@ -92,7 +94,9 @@ def print_lines_with_markings(instance_array):
             if len(gen) == 1
             else (
                 "x"
-                + "x".join(["-" * (b - a - 1) for a, b in zip(gen[:-1], gen[1:])])
+                + "x".join(
+                    ["-" * (b - a - 1) for a, b in zip(gen[:-1], gen[1:])]
+                )
                 + "x"
             )
         )
@@ -107,7 +111,9 @@ def max_repeated_wedges(dist_arr: List[int]) -> int:
 
     # construct graph
     n_diff = n_loci - 1
-    classlist = [tuple(sorted((dist_arr[i], dist_arr[i + 1]))) for i in range(n_diff)]
+    classlist = [
+        tuple(sorted((dist_arr[i], dist_arr[i + 1]))) for i in range(n_diff)
+    ]
     adjacent = [
         [classlist[i] == classlist[j] and i != j for j in range(n_diff)]
         for i in range(n_diff)
@@ -163,6 +169,52 @@ def distribute_to_isolated_subproblems(
             ranges[i + 1] = (s1, max(e2, e1))
             chosen[i] = False
     return [se for i, se in enumerate(ranges) if chosen[i]]
+
+
+def distribute_lower_bound(instance_array):
+    n_loci = len(instance_array)
+    n_pop = max(len(set(instance_array))) + 1
+    return ceil((n_loci + n_pop) / 2)
+
+
+def verify_distribute_array(array):
+    """
+    Throws an assert error if array is invalid distribute array
+
+    >>> sanitise_distribute_array([0, 1, 0, 2, 0])
+    >>> sanitise_distribute_array([0, 1, 0, 3, 0])
+    AssertionError
+    """
+    assert array[0] == 0
+    x_pre = 0
+    x_max = 1
+    for x in array[1:]:
+        assert x != x_pre
+        assert x in range(0, x_max + 1)
+        x_pre = x
+        if x == x_max:
+            x_max += 1
+    return array
+
+
+def sanitise_distribute_array(dist_array: List[int]) -> List[int]:
+    """
+    Translates any substring of a dist_array to a dist_array
+
+    >>> sanitise_distribute_array([3, 5, 2, 6, 5, 3])
+    [0, 1, 2, 3, 1, 0]
+    """
+    assert len(dist_array) > 0
+    out = dist_array.copy()
+    d = {dist_array[0]: 0}
+    dx_max = 0
+    for i in range(1, len(dist_array)):
+        x = dist_array[i]
+        if x not in d:
+            dx_max += 1
+            d[x] = dx_max
+        out[i] = d[x]
+    return out
 
 
 def main1():
