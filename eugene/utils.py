@@ -217,6 +217,26 @@ def sanitise_distribute_array(dist_array: List[int]) -> List[int]:
     return out
 
 
+def gen_covering_subsets(n_loci: int, segments: list):
+    n = len(segments)
+    segments.sort()
+    selection = [False] * n
+
+    def aux(i, current_end):
+        if i == n or current_end == n_loci:
+            yield [seg for seg, b in zip(segments, selection) if b]
+        elif segments[i][0] > current_end:
+            return
+        else:
+            yield from aux(i + 1, current_end)
+            if segments[i][1] > current_end:
+                selection[i] = True
+                yield from aux(i + 1, max(current_end, segments[i][1]))
+                selection[i] = False
+
+    return aux(0, 0)
+
+
 def main1():
     for ia in gen_distribute_instances(20):
         print(ia)

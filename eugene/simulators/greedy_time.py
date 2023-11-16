@@ -130,8 +130,8 @@ def segments_from_gamete(n_loci: int, gamete: int) -> list:
     s = e = None
     # traverse alleles in reverse order
     for i in range(n_loci):
-        # allele = (gamete >> i) & 1    # for bigints
-        allele = gamete[i]  # for bitarrays
+        allele = (gamete >> i) & 1    # for bigints
+        # allele = gamete[i]  # for bitarrays
         if allele:
             if not in_segment:
                 e = n_loci - 1 - i
@@ -167,7 +167,7 @@ def segments_from_genotype(n_loci: int, genotype: PlantSPC) -> list:
     )
     out_i = 0
 
-    # oh dear god, does this even work?
+    # This works.
     while i < len(q1) and j < len(q2):
         c1 = (s1, e1, g1) = q1[i]
         c2 = (s2, e2, g2) = q2[j]
