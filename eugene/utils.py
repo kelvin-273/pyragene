@@ -35,6 +35,24 @@ def gen_distribute_instances(n_loci):
     yield from aux()
 
 
+def gen_distribute_instances_with_n_pop(n_loci, n_pop):
+    state = [0] * n_loci
+
+    def aux(i=1, max_val=0):
+        if i == n_loci:
+            yield state.copy()
+        else:
+            for val_i in range(max_val + 1):
+                if val_i != state[i - 1]:
+                    state[i] = val_i
+                    yield from aux(i + 1, max_val)
+            if max_val + 1 < n_pop:
+                state[i] = max_val + 1
+                yield from aux(i + 1, max_val + 1)
+
+    yield from aux()
+
+
 def random_distribute_instance(n_loci):
     state = [0] * n_loci
     max_val = 0

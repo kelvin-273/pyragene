@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from itertools import chain, product, starmap, zip_longest
+from itertools import chain, product
 from random import choice, randrange
 from typing import List
 from functools import reduce
 
-from eugene.simulators import greedy_time as gt
-from eugene.simulators.abc import BreedingProgram
+from eugene.solvers import greedy_time as gt
+from eugene.solvers.abc import BreedingProgram
 from eugene.plant_models.plant2 import PlantSPC, Crossable, DomStrong
 
 
@@ -23,9 +23,7 @@ class PlantMCh(Crossable, DomStrong):
     chrom2: List[int]
 
     def crosspoints(self):
-        return product(
-            *(product(range(2), range(n_loci_i)) for n_loci_i in self.n_loci)
-        )
+        return product(*(product(range(2), range(n_loci_i)) for n_loci_i in self.n_loci))
 
     def random_crosspoint(self):
         return [(randrange(2), randrange(n_loci_i)) for n_loci_i in self.n_loci]
@@ -70,63 +68,28 @@ class BreedingProgramMultiChromTI(BreedingProgram):
         n_plants = len(self._pop_0)
         assert n_plants == 2
 
-        @dataclass
-        class Genotype:
-            plant: self._plant_type
-            histories: tuple
-
-            def crosspoints(self):
-                return self.plant.crosspoints()
-
-            def gamete_specified(self, crosspoint):
-                return self.plant.gamete_specified(crosspoint)
-
-            def format(self):
-                return str(self.plant)
-
-        @dataclass
-        class Gamete:
-            gamete: int
-            histories: list
-
-            def __str__(g):
-                return format(g.gamete, f"0{self._n_loci}")
-
-        self._Genotype = Genotype
-        self._Gamete = Gamete
-
-        # Extract a table `segments` where segments[i][x] is a list of segments
+        # Extract a table `segments` where segments[x][i] is a list of segments
         # in the ith chromosome of plant x in sorted order.
-        pop_0 = list(map(Genotype, self._pop_0))
-
         segments = [
             [
                 gt.segments_from_genotype(
-                    n_loci_i, PlantSPC(n_loci_i, plant.chrom1[i], plant.chrom2[i])
+                    n_loci_i,
+                    PlantSPC(n_loci_i, plant.chrom1[i], plant.chrom2[i])
                 )
-                for plant in self._pop_0
+                for i, n_loci_i in enumerate(self._n_loci)
             ]
-            for i, n_loci_i in enumerate(self._n_loci)
+            for plant in self._pop_0
         ]
+        # run single chromosome breeding programs
+        trees = [single_chromsome_breeding_program(n_loci_i, [
+            s
+            for x in range(n_plants)
+            for s in segments[x][i]
+        ]) for i, n_loci_i in enumerate(self._n_loci)]
 
-        # create zipped segments
-        def f(n_loci_i, seg_a, seg_b):
-            if seg_a is None and seg_b is None:
-                raise ValueError("segments are both None")
+        trees_individual = [extract_first_tree(tree) for tree in trees]
 
-            if seg_a is None:
-                return seg_b
-            if seg_b is None:
-                return seg_a
-
-            # under the assumption that the segments are disjoint, order them
-            # cross them
-            return segment_join(n_loci_i, seg_a, seg_b)
-
-        segments_next_gen = [
-            [f(n_loci_i, seg_a, seg_b) for seg_a, seg_b in zip_longest(*segments_i)]
-            for segments_i, n_loci_i in zip(segments, self._n_loci)
-        ]
+        return stack_trees(self._n_loci, trees_individual)
 
 
 def segment_join(n_loci, cx, cy):
@@ -156,8 +119,11 @@ def stack_trees(n_loci, trees_individual):
 
 def single_chromsome_breeding_program_TI(n_loci, pop_0):
     from eugene.simulators.greedy_time import BreedingProgramGreedyTime
-
     bp = BreedingProgramGreedyTime(n_loci, PlantSPC)
-    bp.set_ideotype(PlantSPC(n_loci, (1 << n_loci) - 1, (1 << n_loci) - 1,))
+    bp.set_ideotype(PlantSPC(
+        n_loci,
+        (1 << n_loci) - 1,
+        (1 << n_loci) - 1,
+    ))
     bp.set_init_pop(pop_0)
     bp.run()
