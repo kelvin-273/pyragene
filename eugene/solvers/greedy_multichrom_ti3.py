@@ -4,8 +4,8 @@ from random import choice, randrange
 from typing import List
 from functools import reduce
 
-from eugene.simulators import greedy_time as gt
-from eugene.simulators.abc import BreedingProgram
+from eugene.solvers import greedy_time as gt
+from eugene.solvers.abc import BreedingProgram
 from eugene.plant_models.plant2 import PlantSPC, Crossable, DomStrong
 
 

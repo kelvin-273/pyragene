@@ -516,7 +516,7 @@ def filter_non_dominating_gametes(gametes):
 
 def dom_gamete(x, y):
     """
-    Returns tru if y dominates x i.e. x ≤ y.
+    Returns True if y dominates x i.e. x ≤ y.
     """
     return not (x & ~y)
 

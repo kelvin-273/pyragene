@@ -35,6 +35,24 @@ def gen_distribute_instances(n_loci):
     yield from aux()
 
 
+def gen_distribute_instances_with_n_pop(n_loci, n_pop):
+    state = [0] * n_loci
+
+    def aux(i=1, max_val=0):
+        if i == n_loci:
+            yield state.copy()
+        else:
+            for val_i in range(max_val + 1):
+                if val_i != state[i - 1]:
+                    state[i] = val_i
+                    yield from aux(i + 1, max_val)
+            if max_val + 1 < n_pop:
+                state[i] = max_val + 1
+                yield from aux(i + 1, max_val + 1)
+
+    yield from aux()
+
+
 def random_distribute_instance(n_loci):
     state = [0] * n_loci
     max_val = 0
@@ -102,51 +120,6 @@ def print_lines_with_markings(instance_array):
         )
         string += " " * (n - e - 1)
         print(string)
-
-
-def max_repeated_wedges(dist_arr: List[int]) -> int:
-    n_loci = len(dist_arr)
-    if n_loci <= 3:
-        return 0
-
-    # construct graph
-    n_diff = n_loci - 1
-    classlist = [
-        tuple(sorted((dist_arr[i], dist_arr[i + 1]))) for i in range(n_diff)
-    ]
-    adjacent = [
-        [classlist[i] == classlist[j] and i != j for j in range(n_diff)]
-        for i in range(n_diff)
-    ]
-    # __import__('pprint').pprint([[int(x) for x in row] for row in adjacent])
-
-    xs = [False] * n_diff
-
-    def aux(i, prev_skip=False, obj_curr=0):
-        if i >= n_diff:
-            # list is fully allocated
-            return obj_curr
-        else:
-            out = obj_curr
-
-            # choose current and continue
-            xs[i] = True
-            repeated = any(adjacent[i][j] and xs[j] for j in range(i))
-            # print(i, repeated, sep='\t')
-            obj_new = obj_curr + repeated
-            res = aux(i + 2, prev_skip=False, obj_curr=obj_new)
-            out = max(out, res)
-
-            # remove current from choice
-            xs[i] = False
-            # skip
-            if not prev_skip:
-                res = aux(i + 1, prev_skip=True, obj_curr=obj_curr)
-                out = max(out, res)
-            # print(f"return {out}")
-            return out
-
-    return aux(0)
 
 
 def distribute_to_isolated_subproblems(
@@ -221,6 +194,26 @@ def sanitise_distribute_array(dist_array: List[int]) -> List[int]:
             d[x] = dx_max
         out[i] = d[x]
     return out
+
+
+def gen_covering_subsets(n_loci: int, segments: list):
+    n = len(segments)
+    segments.sort()
+    selection = [False] * n
+
+    def aux(i, current_end):
+        if i == n or current_end == n_loci:
+            yield [seg for seg, b in zip(segments, selection) if b]
+        elif segments[i][0] > current_end:
+            return
+        else:
+            yield from aux(i + 1, current_end)
+            if segments[i][1] > current_end:
+                selection[i] = True
+                yield from aux(i + 1, max(current_end, segments[i][1]))
+                selection[i] = False
+
+    return aux(0, 0)
 
 
 def main1():
