@@ -177,6 +177,12 @@ def distribute_lower_bound(instance_array):
     return ceil((n_loci + n_pop) / 2)
 
 
+def distribute_upper_bound(instance_array):
+    n_loci = len(instance_array)
+    n_pop = len(set(instance_array))
+    return max(ceil((n_loci + n_pop * n_pop - n_pop) / 2), n_loci)
+
+
 def verify_distribute_array(array):
     """
     Throws an assert error if array is invalid distribute array
