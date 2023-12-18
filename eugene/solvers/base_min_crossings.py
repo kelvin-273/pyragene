@@ -10,6 +10,10 @@ from eugene.simulators.greedy_time import segments_from_genotype, min_segment_co
 
 
 def gen_covering_subsets(n_loci: int, segments: list):
+    """
+    Give an integer `n_loci` and a list of `segments`, returns a generator that
+    yields subsets of segments that cover the loci 0..n_loci-1.
+    """
     n = len(segments)
     segments.sort()
     selection = [False] * n

@@ -55,9 +55,9 @@ def min_crossings_wedges_heuristic(dist_arr: List[int]) -> int:
     return len(dist_arr) - res
 
 
-def min_crossings_wedges_heuristic_w_solution(args):
+def min_crossings_wedges_heuristic_w_solution(dist_arr: List[int]):
     pass
 
 
-def min_crossings_wedges_heuristic_w_bounded_objective(args):
-    pass
+def min_crossings_wedges_heuristic_w_bounded_objective(dist_arr: List[int], bound: int):
+    return min(min_crossings_wedges_heuristic(dist_arr), bound)
