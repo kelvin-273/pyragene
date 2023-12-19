@@ -3,14 +3,12 @@ from random import randint
 from typing import List, Tuple
 
 
-def count_ones(x: int):
+def count_ones(x: int) -> int:
     """
     Returns the number of one bits in the integer
     """
     if x < 0:
-        raise ValueError(
-            "Gave negative int and don't know how to deal with this yet"
-        )
+        raise ValueError("Gave negative int and don't know how to deal with this yet")
     out = 0
     while x > 0:
         x, r = x >> 1, x & 1
@@ -51,6 +49,99 @@ def gen_distribute_instances_with_n_pop(n_loci, n_pop):
                 yield from aux(i + 1, max_val + 1)
 
     yield from aux()
+
+
+def gen_distribute_instances_after(dist_array):
+    n_loci = len(dist_array)
+    ys = next_distribute_instance_of_n_loci(n_loci, dist_array)
+    while ys is not None:
+        dist_array = ys
+        yield dist_array
+        ys = next_distribute_instance_of_n_loci(n_loci, dist_array)
+
+
+def gen_distribute_instances_after_mut(dist_array):
+    n_loci = len(dist_array)
+    ys = next_distribute_instance_of_n_loci_mut(n_loci, dist_array)
+    while ys is not None:
+        dist_array = ys
+        yield dist_array
+        ys = next_distribute_instance_of_n_loci_mut(n_loci, dist_array)
+
+
+def next_distribute_instance(dist_array):
+    n_loci = len(dist_array)
+    trailing_maxes = 1
+    max_x = 0
+    for x in dist_array[1:]:
+        if x == max_x + 1:
+            trailing_maxes += 1
+            max_x = x
+        else:
+            trailing_maxes = 0
+    if trailing_maxes == n_loci:
+        return [i % 2 for i in range(n_loci + 1)]
+    start = dist_array[: n_loci - trailing_maxes - 1]
+    mid = dist_array[n_loci - trailing_maxes - 1] + (
+        2
+        if dist_array[n_loci - trailing_maxes - 1]
+        == dist_array[n_loci - trailing_maxes - 2] - 1
+        else 1
+    )
+    end = [i % 2 for i in range(trailing_maxes)]
+    return start + [mid] + end
+
+
+def next_distribute_instance_of_n_loci(n_loci, dist_array):
+    res = next_distribute_instance(dist_array)
+    if len(res) > n_loci:
+        return None
+    return res
+
+
+def next_distribute_instance_mut(dist_array):
+    n_loci = len(dist_array)
+    trailing_maxes = 1
+    max_x = 0
+    for x in dist_array[1:]:
+        if x == max_x + 1:
+            trailing_maxes += 1
+            max_x = x
+        else:
+            trailing_maxes = 0
+    if trailing_maxes == n_loci:
+        dist_array.append(0)
+        trailing_maxes += 1
+    else:
+        dist_array[n_loci - trailing_maxes - 1] += 1
+    for i in range(trailing_maxes):
+        dist_array[n_loci - trailing_maxes + i] = i % 2
+    return dist_array
+
+
+def next_distribute_instance_of_n_loci_mut(n_loci, dist_array):
+    trailing_maxes = 1
+    max_x = 0
+    for x in dist_array[1:]:
+        if x == max_x + 1:
+            trailing_maxes += 1
+            max_x = x
+        else:
+            trailing_maxes = 0
+    if trailing_maxes == n_loci:
+        return None
+    dist_array[n_loci - trailing_maxes - 1] += 1
+    for i in range(trailing_maxes):
+        dist_array[n_loci - trailing_maxes + i] = i % 2
+    return dist_array
+
+
+def cmp_le_distribute_arrays(dist_array1, dist_array2):
+    if len(dist_array1) < len(dist_array2):
+        return True
+    elif len(dist_array1) > len(dist_array2):
+        return False
+    return dist_array1 <= dist_array2
 
 
 def random_distribute_instance(n_loci):
@@ -112,9 +203,7 @@ def print_lines_with_markings(instance_array):
             if len(gen) == 1
             else (
                 "x"
-                + "x".join(
-                    ["-" * (b - a - 1) for a, b in zip(gen[:-1], gen[1:])]
-                )
+                + "x".join(["-" * (b - a - 1) for a, b in zip(gen[:-1], gen[1:])])
                 + "x"
             )
         )
@@ -122,9 +211,7 @@ def print_lines_with_markings(instance_array):
         print(string)
 
 
-def distribute_to_isolated_subproblems(
-    instance: List[int],
-) -> List[Tuple[int, int]]:
+def distribute_to_isolated_subproblems(instance: List[int],) -> List[Tuple[int, int]]:
     n_pop = max(instance) + 1
     s = {}
     e = {}
