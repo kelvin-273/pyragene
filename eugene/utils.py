@@ -144,6 +144,43 @@ def cmp_le_distribute_arrays(dist_array1, dist_array2):
     return dist_array1 <= dist_array2
 
 
+def distribute_sington_decomposition(dist_array):
+    """
+    Given a dist_array, returns a tuple (leading_mins, mid, trailing_maxes)
+    """
+    n_loci = len(dist_array)
+
+    # trailing_maxes
+    trailing_maxes = 1
+    x_max = 0
+    for x in dist_array[1:]:
+        if x > x_max:
+            trailing_maxes += 1
+            x_max = x
+        else:
+            trailing_maxes = 0
+
+    # leading maxes
+    leading_mins = 1
+    x_min = dist_array[-1]
+    for x in reversed(dist_array[:-1]):
+        if x < x_min:
+            leading_mins += 1
+            x_min = x
+        else:
+            leading_mins = 0
+
+    assert (leading_mins == n_loci) == (trailing_maxes == n_loci)
+
+    if leading_mins == n_loci:
+        return (0, [], n_loci)
+    return (
+        leading_mins,
+        dist_array[leading_mins: n_loci - trailing_maxes],
+        trailing_maxes,
+    )
+
+
 def random_distribute_instance(n_loci):
     state = [0] * n_loci
     max_val = 0
