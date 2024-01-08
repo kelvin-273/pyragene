@@ -1,12 +1,12 @@
 import minizinc
+from math import ceil
+import eugene.utils as eu
 
 
 def breeding_program_distribute(n_loci, dist_array, ctx=None):
     if ctx is None:
         ctx = MinizincContext.from_solver_and_model_file(
-            # "or-tools", "../minizinc/genotype/modelGenotypes.mzn"
-            "sat",
-            "../minizinc/genotype/modelGenotypes.mzn",
+            "sat", "../minizinc/genotype/modelGenotypes.mzn",
         )
     instance = ctx.instance
 
@@ -25,6 +25,18 @@ def breeding_program_distribute(n_loci, dist_array, ctx=None):
         "treeRight": result["treeRight"],
         "objective": result.objective,
     }
+
+
+def breeding_program_distribute_optimised(n_loci, dist_array, ctx=None):
+    # bounds
+    n_pop = max(dist_array) + 1
+    bound_lower = ceil((n_loci + n_pop) / 2)
+    bound_upper = ceil(n_loci / 2) + n_pop * n_pop - n_pop
+
+    leading_mins, mid, trailing_maxes = eu.distribute_sington_decomposition(dist_array)
+
+    # minizinc model
+    return breeding_program_distribute(n_loci, dist_array, ctx=ctx)
 
 
 class MinizincContext:
@@ -70,19 +82,16 @@ def instance_array_genotype_homo(instance_array, max_crossovers):
 
 if __name__ == "__main__":
     from eugene.utils import gen_distribute_instances
-    from eugene.db import DistributeDB
+    from eugene.db import DistributeDB, distribute_db_from_json, DBSolver
     import signal
     import json
+    import eugene.utils as eu
 
-    dist_array = [0, 1, 0, 2, 0, 1, 3, 2, 3, 4, 1]
-    __import__("pprint").pprint(
-        (breeding_program_distribute(len(dist_array), dist_array))
-    )
-
-    db = DistributeDB()
+    # db = DistributeDB()
+    db = distribute_db_from_json("distribute_data.json")
 
     def handle_interupt(signum, frame, ask=True):
-        with open("distribute_data.json", "w") as f:
+        with open("distribute_data_2.json", "w") as f:
             json.dump(db.db, f)
         exit(0)
 
@@ -91,7 +100,8 @@ if __name__ == "__main__":
     for n_loci in range(1, 10):
         for dist_array in gen_distribute_instances(n_loci):
             print(dist_array)
-            solution = breeding_program_distribute(n_loci, dist_array)
-            db[dist_array] = solution
+            if dist_array not in db:
+                solution = breeding_program_distribute(n_loci, dist_array)
+                db[dist_array] = solution
 
     handle_interupt(None, None)
