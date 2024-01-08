@@ -13,6 +13,10 @@ class DB(ABC):
     def __setitem__(self, instance, solution):
         pass
 
+    @abstractmethod
+    def __contains__(self, instance, solution):
+        pass
+
 
 class DistributeDB(DB):
     """
@@ -25,11 +29,14 @@ class DistributeDB(DB):
     def __getitem__(self, instance):
         try:
             return self.db[str(instance)]
-        except ValueError:
+        except KeyError:
             return None
 
     def __setitem__(self, instance, solution):
         self.db[str(instance)] = solution
+
+    def __contains__(self, instance):
+        return self[instance] is not None
 
 
 class DBSolver:
@@ -54,12 +61,16 @@ def parse_dist_array(s: str) -> List[int]:
     return eval(s)
 
 
-def dic_to_list(d: dict):
+def distribute_db_dict_to_list(d: dict):
     class A:
         def __init__(self, arr):
             self.arr = arr
+
         def __lt__(self, other):
-            return cmp_le_distribute_arrays(self.arr, other.arr) and self != other
+            return (
+                cmp_le_distribute_arrays(self.arr, other.arr) and self.arr != other.arr
+            )
+
     dist_arrays = [A(parse_dist_array(s)) for s in d.keys()]
     dist_arrays.sort()
     return [{"instance": a.arr, "solution": d[str(a.arr)]} for a in dist_arrays]
@@ -68,4 +79,4 @@ def dic_to_list(d: dict):
 if __name__ == "__main__":
     db = distribute_db_from_json("./distribute_data.json")
     # __import__('pprint').pprint(dic_to_list(db.db))
-    print(json.dumps(dic_to_list(db.db)))
+    print(json.dumps(distribute_db_dict_to_list(db.db)))
