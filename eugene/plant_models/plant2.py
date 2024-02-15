@@ -1,7 +1,7 @@
 from collections import Counter
 from dataclasses import dataclass
 from random import randint, randrange, sample
-from typing import NewType
+from typing import NewType, List
 from abc import ABC, abstractmethod, abstractclassmethod
 from bitarray import frozenbitarray
 from bitarray.util import urandom, zeros
@@ -263,15 +263,18 @@ class PlantSPC(Crossable, DomStrong):
         return elite_pop + donor_pop
 
     @staticmethod
-    def initial_pop_random(n_loci: int, n_individuals: int):
+    def initial_pop_random(n_loci: int, n_individuals: int, p=0.5):
         """
         Generates a population of uniform randomly generated plants such that
         the ideotype is in its span.
         """
-        out = [
-            PlantSPC(n_loci, randrange(1 << n_loci), randrange(1 << n_loci))
-            for _ in range(n_individuals)
-        ]
+        if p == 0.5:
+            out = [
+                PlantSPC(n_loci, randrange(1 << n_loci), randrange(1 << n_loci))
+                for _ in range(n_individuals)
+            ]
+        else:
+            raise NotImplementedError("implement biased sampling for initial populations")
         while PlantSPC.union(out) != (1 << n_loci) - 1:
             out = [
                 PlantSPC(n_loci, randrange(1 << n_loci), randrange(1 << n_loci))
@@ -308,6 +311,17 @@ class PlantSPC(Crossable, DomStrong):
         s1 = format(self.chrom1, f"0{self.n_loci}b")
         s2 = format(self.chrom2, f"0{self.n_loci}b")
         return f"({s1}, {s2})"
+
+    def to_bitlist(self):
+        upper = self.chrom1
+        lower = self.chrom2
+
+        out = [[0] * self.n_loci, [0] * self.n_loci]
+        for i in reversed(range(self.n_loci)):
+            upper, out[0][i] = upper >> 1, upper & 1
+            lower, out[1][i] = lower >> 1, lower & 1
+
+        return out
 
 
 @dataclass(order=True)

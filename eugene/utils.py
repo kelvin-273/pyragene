@@ -1,6 +1,7 @@
 from math import ceil
 from random import randint
 from typing import List, Tuple
+from functools import lru_cache
 
 
 def count_ones(x: int) -> int:
@@ -14,6 +15,16 @@ def count_ones(x: int) -> int:
         x, r = x >> 1, x & 1
         out += r
     return out
+
+
+@lru_cache(maxsize=None)
+def count_distribute_instances(n_loci, xmax=1):
+    if n_loci == 1:
+        return 1
+    else:
+        return count_distribute_instances(n_loci - 1, xmax + 1) + (
+            xmax - 1
+        ) * count_distribute_instances(n_loci - 1, xmax)
 
 
 def gen_distribute_instances(n_loci):
@@ -136,7 +147,7 @@ def next_distribute_instance_of_n_loci_mut(n_loci, dist_array):
     return dist_array
 
 
-def cmp_le_distribute_arrays(dist_array1, dist_array2):
+def cmp_le_distribute_arrays(dist_array1, dist_array2) -> bool:
     if len(dist_array1) < len(dist_array2):
         return True
     elif len(dist_array1) > len(dist_array2):
@@ -144,9 +155,14 @@ def cmp_le_distribute_arrays(dist_array1, dist_array2):
     return dist_array1 <= dist_array2
 
 
-def distribute_sington_decomposition(dist_array):
+def distribute_sington_decomposition(dist_array) -> Tuple[int, List[int], int]:
     """
-    Given a dist_array, returns a tuple (leading_mins, mid, trailing_maxes)
+    Given a dist_array, returns a tuple `(leading_mins, mid, trailing_maxes)`
+    where `leading_mins` and `trailing_maxes` are the size of the largest 
+    strictly increasing prefix and suffix, repspectively, of dist_array whose
+    values aren't found in anywhere else in dist_array and `mid` is the
+    sanitised distribute array left over after removing the leading_mins and
+    trailing_maxes.
     """
     n_loci = len(dist_array)
 
@@ -176,7 +192,7 @@ def distribute_sington_decomposition(dist_array):
         return (0, [], n_loci)
     return (
         leading_mins,
-        dist_array[leading_mins: n_loci - trailing_maxes],
+        sanitise_distribute_array(dist_array[leading_mins : n_loci - trailing_maxes]),
         trailing_maxes,
     )
 

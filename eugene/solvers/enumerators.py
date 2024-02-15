@@ -497,6 +497,22 @@ def filter_non_dominating(pop):
     return [pop[i] for i in range(n) if to_keep[i]]
 
 
+def filter_non_dominating_with_key(pop, key_dom):
+    n = len(pop)
+    to_keep = [True] * n
+    for i, x in enumerate(pop):
+        for j in range(i):
+            if not to_keep[j]:
+                continue
+            y = pop[j]
+            if key_dom(y, x):
+                to_keep[i] = False
+                break
+            if key_dom(x, y):
+                to_keep[j] = False
+    return [pop[i] for i in range(n) if to_keep[i]]
+
+
 def filter_non_dominating_gametes(gametes):
     n = len(gametes)
     gametes_naked = [x.gamete for x in gametes]

@@ -1,33 +1,85 @@
+import contextlib
 import minizinc
 from math import ceil
+from typing import List
+
 import eugene.utils as eu
+import eugene.plant_models.plant2 as ep2
+from eugene.solution import BaseSolution
 
 
-def breeding_program_distribute(n_loci, dist_array, ctx=None):
-    if ctx is None:
-        ctx = MinizincContext.from_solver_and_model_file(
-            "sat", "../minizinc/genotype/modelGenotypes.mzn",
-        )
-    instance = ctx.instance
-
+def breeding_program_distribute(n_loci, dist_array, ctx=None) -> BaseSolution:
+    """
+    Solves a distribute instance using the minizinc model.
+    A MinizincContext can be passed in as an optional parameter,
+    otherwise a MinizincContext is constructed using cp-sat from OR-Tools.
+    """
     items = instance_array_genotype_homo(
         instance_array=dist_array, max_crossovers=1
     ).items()
 
-    for k, v in items:
-        instance[k] = v
+    if ctx is None:
+        ctx = MinizincContext.from_solver_and_model_file(
+            "sat", "./eugene/solvers/minizinc/mincross.mzn",
+        )
+        instance = ctx.instance
 
-    result = instance.solve(free_search=True)
-    return {
-        "treeData": result["xs"],
-        "treeType": result["treeType"],
-        "treeLeft": result["treeLeft"],
-        "treeRight": result["treeRight"],
-        "objective": result.objective,
-    }
+        for k, v in items:
+            instance[k] = v
+
+        result = instance.solve(free_search=True)
+        return BaseSolution(
+            tree_data=result["xs"],
+            tree_type=result["treeType"],
+            tree_left=result["treeLeft"],
+            tree_right=result["treeRight"],
+            objective=result.objective,
+        )
+    else:
+        with ctx.instance.branch() as instance:
+
+            for k, v in items:
+                instance[k] = v
+
+            result = instance.solve(free_search=True)
+            return BaseSolution(
+                tree_data=result["xs"],
+                tree_type=result["treeType"],
+                tree_left=result["treeLeft"],
+                tree_right=result["treeRight"],
+                objective=result.objective,
+            )
 
 
-def breeding_program_distribute_optimised(n_loci, dist_array, ctx=None):
+def breeding_program(n_loci, pop_0, ctx=None) -> BaseSolution:
+    """
+    Solves a distribute instance using the minizinc model.
+    A MinizincContext can be passed in as an optional parameter,
+    otherwise a MinizincContext is constructed using cp-sat from OR-Tools.
+    """
+    items = instance_array_genotype(pop_0, max_crossovers=1).items()
+
+    if ctx is None:
+        ctx = MinizincContext.from_solver_and_model_file(
+            "sat", "./eugene/solvers/minizinc/mincross.mzn",
+        )
+    with ctx.instance.branch() as instance:
+
+        for k, v in items:
+            instance[k] = v
+
+        result = instance.solve(free_search=True)
+        return BaseSolution(
+            tree_data=result["xs"],
+            tree_type=result["treeType"],
+            tree_left=result["treeLeft"],
+            tree_right=result["treeRight"],
+            objective=result.objective,
+        )
+
+
+def breeding_program_distribute_optimised(n_loci, dist_array, ctx=None) -> BaseSolution:
+    raise NotADirectoryError("still to decide what optimisations will go here")
     # bounds
     n_pop = max(dist_array) + 1
     bound_lower = ceil((n_loci + n_pop) / 2)
@@ -40,6 +92,11 @@ def breeding_program_distribute_optimised(n_loci, dist_array, ctx=None):
 
 
 class MinizincContext:
+    """
+    A container for the model, solver, and instance configurations for
+    minizinc models.
+    """
+
     def __init__(
         self,
         model: minizinc.Model,
@@ -57,8 +114,10 @@ class MinizincContext:
         instance = minizinc.Instance(solver, model)
         return MinizincContext(model, solver, instance)
 
+    @contextlib.contextmanager
     def branch(self):
-        return MinizincContext(self.model, self.solver, self.instance.branch())
+        with self.instance.branch() as child:
+            yield MinizincContext(self.model, self.solver, child)
 
 
 def instance_array_genotype_homo(instance_array, max_crossovers):
@@ -73,11 +132,36 @@ def instance_array_genotype_homo(instance_array, max_crossovers):
         "maxCrossovers": max_crossovers,
         "nLoci": n_loci,
         "nGenotypes": n_gametes,
-        "nTreeCells": n_loci * 2,
+        "nTreeCells": n_loci + n_gametes,
         "genotypes": [
             [[1 if j == i else 0 for j in instance_array]] * 2 for i in range(n_gametes)
         ],
     }
+
+
+def instance_array_genotype(pop_0: List[ep2.PlantSPC], max_crossovers):
+    """
+    Creates an instance as a dictionary of an instance of homozygous genotypes
+    from an instance array and an integer representing the maximum allowed
+    crossovers.
+    """
+    if len(pop_0) == 0:
+        raise NotImplementedError("Need a way to account for empty instances")
+
+    n_loci = pop_0[0].n_loci
+    n_pop = len(pop_0)
+    return {
+        "maxCrossovers": max_crossovers,
+        "nLoci": n_loci,
+        "nGenotypes": n_pop,
+        "nTreeCells": n_loci + n_pop,
+        "genotypes": [x.to_bitlist() for x in pop_0],
+    }
+
+
+DEFAULT_CTX = MinizincContext.from_solver_and_model_file(
+    "sat", "../minizinc/genotype/modelGenotypes.mzn"
+)
 
 
 if __name__ == "__main__":

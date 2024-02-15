@@ -1,7 +1,7 @@
 import unittest
 from random import randrange, choice, random
 from itertools import combinations
-from eugene.simulators import greedy_time
+from eugene.solvers import greedy_time
 from eugene.plant_models.plant2 import PlantSPC
 
 

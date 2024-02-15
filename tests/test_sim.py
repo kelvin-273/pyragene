@@ -1,6 +1,6 @@
 import unittest
 
-from eugene.simulators import sim
+from eugene.solvers.enumerators import sim
 from eugene.plant_models import plant
 from eugene.simulators.sim import PopulationGenerators
 

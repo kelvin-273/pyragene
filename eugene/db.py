@@ -2,6 +2,7 @@ import json
 from abc import ABC, abstractmethod
 from typing import Callable, List
 from eugene.utils import cmp_le_distribute_arrays
+from eugene.solution import BaseSolution
 
 
 class DB(ABC):
@@ -38,18 +39,27 @@ class DistributeDB(DB):
     def __contains__(self, instance):
         return self[instance] is not None
 
+    def get_base_solution(self, instance):
+        try:
+            return BaseSolution.from_dict(self.db[str(instance)])
+        except KeyError:
+            return None
+
 
 class DBSolver:
     def __init__(self, solver, db: DB):
         self.solver = solver
         self.db = db
 
-    def solve(self, instance):
-        solution = self.db[instance]
+    def solve(self, instance) -> BaseSolution:
+        solution = self.db.get_base_solution(instance)
         if solution is None:
             solution = self.solver(instance)
-            self.db[instance] = solution
+            self.db[instance] = solution.to_dict()
         return solution
+
+    def __call__(self, instance):
+        return self.solve(instance)
 
 
 def distribute_db_from_json(filename: str):
