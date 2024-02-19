@@ -12,20 +12,11 @@ import eugene.db as ed
 with ed.CachedDB("./distribute_data_2.json", ed.DistributeDB,) as db:
 
     solver_opt = ed.DBSolver(
-        lambda instance: em.breeding_program_distribute(
-            len(instance), instance), db
+        lambda instance: em.breeding_program_distribute(len(instance), instance), db
     )
 
-    def solver_heu(instance): return ew.breeding_program(
-        len(instance), instance)
-
-    # for n_loci in range(2, 10):
-    #     print()
-    #     cases = [eu.random_distribute_instance(n_loci) for _ in range(100)]
-    #     obj_opt = [solver_opt(arr).objective for arr in cases]
-    #     obj_heu = [solver_heu(arr).objective for arr in cases]
-    #     for case, opt, heu in zip(cases, obj_opt, obj_heu):
-    #         print(case, opt, heu, heu - opt, sep='\t')
+    def solver_heu(instance):
+        return ew.breeding_program(len(instance), instance)
 
     with open("./data/optgap_instances.json") as f:
         case_dict = json.load(f)
