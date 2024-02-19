@@ -54,10 +54,7 @@ class DistributeDB(DB, DeserializableABC):
         return self._db
 
     def __getitem__(self, instance):
-        try:
-            return self.db[str(instance)]
-        except KeyError:
-            return None
+        return self.db[str(instance)]
 
     def __setitem__(self, instance, solution):
         self.db[str(instance)] = solution
@@ -87,8 +84,9 @@ class DBSolver:
         self.db = db
 
     def solve(self, instance) -> BaseSolution:
-        solution = self.db.get_base_solution(instance)
-        if solution is None:
+        try:
+            solution = BaseSolution.from_dict(self.db[instance])
+        except KeyError:
             solution = self.solver(instance)
             self.db[instance] = solution.to_dict()
         return solution
@@ -119,22 +117,6 @@ def distribute_db_dict_to_list(d: dict):
     dist_arrays = [A(parse_dist_array(s)) for s in d.keys()]
     dist_arrays.sort()
     return [{"instance": a.arr, "solution": d[str(a.arr)]} for a in dist_arrays]
-
-
-class DBSolverCachedWriting(DBSolver):
-    def __init__(self, solver, db: DB):
-        self._solver = solver
-        self._db = db
-
-    def solve(self, instance) -> BaseSolution:
-        solution = self.db.get_base_solution(instance)
-        if solution is None:
-            solution = self.solver(instance)
-            self.db[instance] = solution.to_dict()
-        return solution
-
-    def __call__(self, instance):
-        return self.solve(instance)
 
 
 class CachedDB(DB):
