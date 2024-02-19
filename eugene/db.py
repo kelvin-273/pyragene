@@ -1,11 +1,16 @@
 import json
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from typing import List, Optional
 from eugene.utils import cmp_le_distribute_arrays
 from eugene.solution import BaseSolution
 
 
 class DB(ABC):
+    @property
+    @abstractmethod
+    def db(self):
+        pass
+
     @abstractmethod
     def __getitem__(self, instance):
         pass
@@ -19,13 +24,34 @@ class DB(ABC):
         pass
 
 
-class DistributeDB(DB):
+class DeserializableABC(ABC):
+
+    @abstractmethod
+    def to_json_file(self, fp):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def from_json_file(fp):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def default():
+        pass
+
+
+class DistributeDB(DB, DeserializableABC):
     """
     Database for storing distribute instances
     """
 
     def __init__(self, db={}):
-        self.db = db
+        self._db = db
+
+    @property
+    def db(self):
+        return self._db
 
     def __getitem__(self, instance):
         try:
@@ -39,15 +65,24 @@ class DistributeDB(DB):
     def __contains__(self, instance):
         return self[instance] is not None
 
+    def default():
+        return DistributeDB()
+
     def get_base_solution(self, instance):
         try:
             return BaseSolution.from_dict(self.db[str(instance)])
         except KeyError:
             return None
 
+    def to_json_file(self, fp):
+        json.dump(self._db, fp)
+
+    def from_json_file(fp):
+        return DistributeDB(db=json.load(fp))
+
 
 class DBSolver:
-    def __init__(self, solver, db: DB):
+    def __init__(self, solver, db: DB, filename: Optional[str] = None):
         self.solver = solver
         self.db = db
 
@@ -86,7 +121,58 @@ def distribute_db_dict_to_list(d: dict):
     return [{"instance": a.arr, "solution": d[str(a.arr)]} for a in dist_arrays]
 
 
+class DBSolverCachedWriting(DBSolver):
+    def __init__(self, solver, db: DB):
+        self._solver = solver
+        self._db = db
+
+    def solve(self, instance) -> BaseSolution:
+        solution = self.db.get_base_solution(instance)
+        if solution is None:
+            solution = self.solver(instance)
+            self.db[instance] = solution.to_dict()
+        return solution
+
+    def __call__(self, instance):
+        return self.solve(instance)
+
+
+class CachedDB(DB):
+    def __init__(
+        self,
+        filename: str,
+        db_cls: DB,
+    ):
+        self._filename = filename
+        self._db_cls = db_cls
+
+    @property
+    def db(self):
+        return self._db
+
+    def __enter__(self):
+        try:
+            with open(self._filename) as f:
+                self._db = self._db_cls.from_json_file(f)
+        except FileNotFoundError:
+            self._db = self._db_cls.default()
+        finally:
+            return self
+
+    def __exit__(self, *args):
+        with open(self._filename, "w") as f:
+            self.db.to_json_file(f)
+
+    def __contains__(self, item):
+        return self.db.__contains__(item)
+
+    def __getitem__(self, item):
+        return self.db.__getitem__(item)
+
+    def __setitem__(self, key, value):
+        self.db[key] = value
+
+
 if __name__ == "__main__":
     db = distribute_db_from_json("./distribute_data.json")
-    # __import__('pprint').pprint(dic_to_list(db.db))
     print(json.dumps(distribute_db_dict_to_list(db.db)))
