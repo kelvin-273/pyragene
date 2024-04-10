@@ -41,20 +41,29 @@ class BaseSolution:
 
     @property
     def n_plants(self):
-        return len(self.tree_data)
+        if not hasattr(self, "_n_plants"):
+            self._n_plants = 0
+            while (
+                self._n_plants < len(self.tree_type)
+                and self.tree_type[self._n_plants] != "Null"
+            ):
+                self._n_plants += 1
+        return self._n_plants
 
     def __str__(self):
-        return "\n".join([
-            f"{self.__class__.__name__}(",
-            "\ttree_data=[",
-            *["\t\t" + repr(genotype) for genotype in self.tree_data],
-            "\t],",
-            f"\ttree_type={repr(self.tree_type)},",
-            f"\ttree_left={repr(self.tree_left)},",
-            f"\ttree_right={repr(self.tree_right)},",
-            f"\tobjective={repr(self.objective)}",
-            ")"
-        ])
+        return "\n".join(
+            [
+                f"{self.__class__.__name__}(",
+                "\ttree_data=[",
+                *["\t\t" + repr(genotype) for genotype in self.tree_data],
+                "\t],",
+                f"\ttree_type={repr(self.tree_type)},",
+                f"\ttree_left={repr(self.tree_left)},",
+                f"\ttree_right={repr(self.tree_right)},",
+                f"\tobjective={repr(self.objective)}",
+                ")",
+            ]
+        )
 
     def generations(self):
         gen = [0] * self.n_plants
@@ -66,7 +75,7 @@ class BaseSolution:
                 return 0
             if gen[i] > 0:
                 return gen[i]
-            res_l = _aux(self.tree_left[i] - 1)     # Because one-indexed
+            res_l = _aux(self.tree_left[i] - 1)  # Because one-indexed
             res_r = _aux(self.tree_right[i] - 1)
             res = 1 + max(res_l, res_r)
             gen[i] = res
@@ -75,4 +84,4 @@ class BaseSolution:
         return _aux(0)
 
     def crossings(self):
-        return sum(t == 'Node' for t in self.tree_type)
+        return sum(t == "Node" for t in self.tree_type)
