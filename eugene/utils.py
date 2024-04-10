@@ -1,5 +1,5 @@
 from math import ceil
-from random import randint
+from random import randint, random
 from typing import List, Tuple
 from functools import lru_cache
 
@@ -9,7 +9,9 @@ def count_ones(x: int) -> int:
     Returns the number of one bits in the integer
     """
     if x < 0:
-        raise ValueError("Gave negative int and don't know how to deal with this yet")
+        raise ValueError(
+            "Gave negative int and don't know how to deal with this yet"
+        )
     out = 0
     while x > 0:
         x, r = x >> 1, x & 1
@@ -19,11 +21,21 @@ def count_ones(x: int) -> int:
 
 @lru_cache(maxsize=None)
 def count_distribute_instances(n_loci, xmax=1):
+    """
+    Returns the number of distribute arrays with n_loci.
+    I don't know what the fuck it means for xmax to be anything other than 1
+    but it helps in the recursive computation.
+    Here's the better explanation (still could be better)
+
+    Let `f(n, i, xmax)` is the number of instances where `i` out `n` values are
+    fixed with `xmax` gametes so far, assuming that gamete start at 1.
+    `f(n, i, xmax) = count_distribute_instances(n - i + 1, xmax)`.
+    """
     if n_loci == 1:
         return 1
     else:
-        return count_distribute_instances(n_loci - 1, xmax + 1) + (
-            xmax - 1
+        return count_distribute_instances(n_loci - 1, xmax + 1) + max(
+            xmax - 1, 0
         ) * count_distribute_instances(n_loci - 1, xmax)
 
 
@@ -192,16 +204,29 @@ def distribute_sington_decomposition(dist_array) -> Tuple[int, List[int], int]:
         return (0, [], n_loci)
     return (
         leading_mins,
-        sanitise_distribute_array(dist_array[leading_mins : n_loci - trailing_maxes]),
+        sanitise_distribute_array(
+            dist_array[leading_mins : n_loci - trailing_maxes]
+        ),
         trailing_maxes,
     )
 
 
 def random_distribute_instance(n_loci):
+    def f(n, i, xmax):
+        return count_distribute_instances(n - i + 1, xmax + 1)
+
+    def random_next_val(n, i, xmax):
+        n_sols_total = f(n, i, xmax)
+        n_sols_diff = f(n, i + 1, xmax + 1)
+        if random() < n_sols_diff / n_sols_total:
+            return xmax
+        return randint(0, xmax - 1)
+
     state = [0] * n_loci
     max_val = 0
     for i in range(1, n_loci):
-        next_val = randint(0, max_val)
+        # next_val = randint(0, max_val)
+        next_val = random_next_val(n_loci, i, max_val)
         if next_val >= state[i - 1]:
             next_val += 1
         state[i] = next_val
@@ -256,7 +281,9 @@ def print_lines_with_markings(instance_array):
             if len(gen) == 1
             else (
                 "x"
-                + "x".join(["-" * (b - a - 1) for a, b in zip(gen[:-1], gen[1:])])
+                + "x".join(
+                    ["-" * (b - a - 1) for a, b in zip(gen[:-1], gen[1:])]
+                )
                 + "x"
             )
         )
@@ -264,7 +291,9 @@ def print_lines_with_markings(instance_array):
         print(string)
 
 
-def distribute_to_isolated_subproblems(instance: List[int],) -> List[Tuple[int, int]]:
+def distribute_to_isolated_subproblems(
+    instance: List[int],
+) -> List[Tuple[int, int]]:
     n_pop = max(instance) + 1
     s = {}
     e = {}
@@ -354,6 +383,20 @@ def gen_covering_subsets(n_loci: int, segments: list):
                 selection[i] = False
 
     return aux(0, 0)
+
+
+def distribute_to_plants(dist_array):
+    from eugene.plant_models.plant2 import PlantSPC
+
+    n_pop = max(dist_array) + 1
+    gametes = [0] * n_pop
+    for x in dist_array:
+        for y in range(n_pop):
+            gametes[y] <<= 1
+        gametes[x] |= 1
+    return [
+        PlantSPC(len(dist_array), gametes[x], gametes[x]) for x in range(n_pop)
+    ]
 
 
 def main1():
