@@ -45,8 +45,8 @@ def max_repeated_wedges(dist_arr: List[int], strict_mingen=False, **kwargs) -> (
             # list is fully allocated
             return obj_curr, selected.copy()
         else:
-            out_obj = obj_curr
-            out_selection = selected
+            out_obj = -1
+            out_selection = None
 
             # choose current wedge and continue
             selected[i] = True
