@@ -1,6 +1,6 @@
 from collections import Counter
 from dataclasses import dataclass
-from random import randint, randrange, sample
+from random import randint, randrange, random, sample
 from typing import NewType, List
 from abc import ABC, abstractmethod, abstractclassmethod
 from bitarray import frozenbitarray
@@ -71,7 +71,9 @@ class Unionable(ABC):
     def union(pop):
         from sys import stderr
 
-        stderr.write("DeprecationWarning: union will be replaced with is_feasible\n")
+        stderr.write(
+            "DeprecationWarning: union will be replaced with is_feasible\n"
+        )
         # raise DeprecationWarning("union will be replaced with is_feasible")
 
     @abstractclassmethod
@@ -148,7 +150,9 @@ class PlantSPC(Crossable, DomStrong):
         return (crossing & self.chrom1) | (~crossing & self.chrom2)
 
     def cross_random(self, other):
-        return PlantSPC(self.n_loci, self.gamete_random(), other.gamete_random())
+        return PlantSPC(
+            self.n_loci, self.gamete_random(), other.gamete_random()
+        )
 
     def dom_strong(self, other):
         """
@@ -268,19 +272,31 @@ class PlantSPC(Crossable, DomStrong):
         Generates a population of uniform randomly generated plants such that
         the ideotype is in its span.
         """
-        if p == 0.5:
-            out = [
-                PlantSPC(n_loci, randrange(1 << n_loci), randrange(1 << n_loci))
-                for _ in range(n_individuals)
-            ]
-        else:
-            raise NotImplementedError("implement biased sampling for initial populations")
-        while PlantSPC.union(out) != (1 << n_loci) - 1:
-            out = [
-                PlantSPC(n_loci, randrange(1 << n_loci), randrange(1 << n_loci))
-                for _ in range(n_individuals)
-            ]
-        return out
+        mask_max = (1 << n_loci) - 1
+
+        def gen_chrom(n_loci, p):
+            c = 0
+            for _ in range(n_loci):
+                c <<= 1
+                c |= random() < p
+            return c
+
+        def union(pop):
+            out = 0
+            for a in pop:
+                out |= a
+            return out
+
+        pop = [gen_chrom(n_loci, p) for _ in range(2 * n_individuals)]
+        mask_cur = union(pop)
+        while mask_cur != mask_max:
+            pop = [x | (gen_chrom(n_loci, p) & (mask_max ^ mask_cur)) for x in pop]
+            mask_cur = union(pop)
+
+        return [
+            PlantSPC(n_loci, pop[2 * i], pop[2 * i + 1])
+            for i in range(n_individuals)
+        ]
 
     @staticmethod
     def initial_pop_singles_homo(n_loci: int):
@@ -342,11 +358,15 @@ class PlantSPCBitarray:
         out = [
             # PlantSPC(n_loci, randrange(1 << n_loci), randrange(1 << n_loci))
             PlantSPCBitarray(
-                n_loci, frozenbitarray(urandom(n_loci)), frozenbitarray(urandom(n_loci))
+                n_loci,
+                frozenbitarray(urandom(n_loci)),
+                frozenbitarray(urandom(n_loci)),
             )
             for _ in range(n_individuals)
         ]
-        while PlantSPCBitarray.union(n_loci, out) != frozenbitarray(~zeros(n_loci)):
+        while PlantSPCBitarray.union(n_loci, out) != frozenbitarray(
+            ~zeros(n_loci)
+        ):
             out = [
                 PlantSPCBitarray(
                     n_loci,
@@ -437,11 +457,15 @@ class WDataP(Crossable, DomStrong, Unionable):
 
     def gamete_specified(self, crosspoint):
         return WDataG(
-            self.x.gamete_specified(crosspoint), history=self.history, count=self.count,
+            self.x.gamete_specified(crosspoint),
+            history=self.history,
+            count=self.count,
         )
 
     def gamete_random(self):
-        return WDataG(self.x.gamete_random(), history=self.history, count=self.count,)
+        return WDataG(
+            self.x.gamete_random(), history=self.history, count=self.count,
+        )
 
     def cross_specified(self, other, crosspoints):
         return WDataP(
@@ -478,7 +502,8 @@ class WDataP(Crossable, DomStrong, Unionable):
             breeding program class"""
         )
         return WDataP(
-            PlantSPC(n_loci, (1 << n_loci) - 1, (1 << n_loci) - 1), history=None,
+            PlantSPC(n_loci, (1 << n_loci) - 1, (1 << n_loci) - 1),
+            history=None,
         )
 
     # TODO: Is there a way to automatically derive this <05-07-22> #
