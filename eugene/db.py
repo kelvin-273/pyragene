@@ -54,10 +54,10 @@ class DistributeDB(DB, DeserializableABC):
         return self._db
 
     def __getitem__(self, instance):
-        return self.db[str(instance)]
+        return self.db[repr(instance)]
 
     def __setitem__(self, instance, solution):
-        self.db[str(instance)] = solution
+        self.db[repr(instance)] = solution
 
     def __contains__(self, instance):
         return self[instance] is not None
@@ -67,7 +67,7 @@ class DistributeDB(DB, DeserializableABC):
 
     def get_base_solution(self, instance):
         try:
-            return BaseSolution.from_dict(self.db[str(instance)])
+            return BaseSolution.from_dict(self.db[repr(instance)])
         except KeyError:
             return None
 
@@ -116,7 +116,7 @@ def distribute_db_dict_to_list(d: dict):
 
     dist_arrays = [A(parse_dist_array(s)) for s in d.keys()]
     dist_arrays.sort()
-    return [{"instance": a.arr, "solution": d[str(a.arr)]} for a in dist_arrays]
+    return [{"instance": a.arr, "solution": d[repr(a.arr)]} for a in dist_arrays]
 
 
 class CachedDB(DB):
@@ -124,9 +124,11 @@ class CachedDB(DB):
         self,
         filename: str,
         db_cls: DB,
+        read_only: bool = True
     ):
         self._filename = filename
         self._db_cls = db_cls
+        self._read_only = read_only
 
     @property
     def db(self):
@@ -142,8 +144,9 @@ class CachedDB(DB):
             return self
 
     def __exit__(self, *args):
-        with open(self._filename, "w") as f:
-            self.db.to_json_file(f)
+        if not self._read_only:
+            with open(self._filename, "w") as f:
+                self.db.to_json_file(f)
 
     def __contains__(self, item):
         return self.db.__contains__(item)
@@ -153,6 +156,10 @@ class CachedDB(DB):
 
     def __setitem__(self, key, value):
         self.db[key] = value
+
+
+def merge_distribute_dbs(db1: DistributeDB, db2: DistributeDB) -> DistributeDB:
+    return DistributeDB(db={**db1.db, **db2.db})
 
 
 if __name__ == "__main__":
