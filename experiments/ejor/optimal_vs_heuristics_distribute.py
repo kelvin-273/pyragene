@@ -4,15 +4,25 @@ and the wedges heuristic on randomly generated distribute instances.
 """
 
 import json
-
 import eugene.solvers.base_min_crossings_wedges as ew
 import eugene.solvers.base_min_crossings_minizinc as em
+import eugene.solvers.base_min_crossings_distribute as es
 import eugene.db as ed
 
-with ed.CachedDB("./distribute_data_2.json", ed.DistributeDB,) as db:
+with ed.CachedDB("./distribute_data_3.json", ed.DistributeDB, read_only=False) as db:
+
+    solver_opt_mzn = ed.DBSolver(
+        lambda instance: em.breeding_program_distribute(
+            len(instance), instance, processes=4
+        ),
+        ed.DistributeDB.from_json_file(open("./distribute_data_2.json")),
+    )
 
     solver_opt = ed.DBSolver(
-        lambda instance: em.breeding_program_distribute(len(instance), instance), db
+        lambda instance: es.breeding_program_distribute(
+            len(instance), instance, sub_solver=lambda _, case: solver_opt_mzn(case)
+        ),
+        db
     )
 
     def solver_heu(instance):
