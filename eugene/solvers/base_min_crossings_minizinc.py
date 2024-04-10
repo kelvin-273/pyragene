@@ -8,7 +8,9 @@ import eugene.plant_models.plant2 as ep2
 from eugene.solution import BaseSolution
 
 
-def breeding_program_distribute(n_loci, dist_array, ctx=None) -> BaseSolution:
+def breeding_program_distribute(
+    n_loci, dist_array, ctx=None, processes=1
+) -> BaseSolution:
     """
     Solves a distribute instance using the minizinc model.
     A MinizincContext can be passed in as an optional parameter,
@@ -20,14 +22,14 @@ def breeding_program_distribute(n_loci, dist_array, ctx=None) -> BaseSolution:
 
     if ctx is None:
         ctx = MinizincContext.from_solver_and_model_file(
-            "sat", "./eugene/solvers/minizinc/mincross.mzn",
+            "sat", "./eugene/solvers/minizinc/mincross_distribute.mzn",
         )
         instance = ctx.instance
 
         for k, v in items:
             instance[k] = v
 
-        result = instance.solve(free_search=True)
+        result = instance.solve(free_search=True, processes=processes)
         return BaseSolution(
             tree_data=result["xs"],
             tree_type=result["treeType"],
@@ -164,28 +166,106 @@ DEFAULT_CTX = MinizincContext.from_solver_and_model_file(
 )
 
 
-if __name__ == "__main__":
-    from eugene.utils import gen_distribute_instances
-    from eugene.db import DistributeDB, distribute_db_from_json, DBSolver
-    import signal
-    import json
-    import eugene.utils as eu
+def check_solution(solution: BaseSolution) -> bool:
+    n_loci = solution.n_loci
+    n_plants = solution.n_plants
+    n_tcells = len(solution.tree_data)
+    n_cross = solution.crossings()
 
-    # db = DistributeDB()
-    db = distribute_db_from_json("distribute_data.json")
+    def crossable(i: int) -> bool:
+        return crossable_gam(
+            solution.tree_data[solution.tree_left[i] - 1][0],
+            solution.tree_data[solution.tree_left[i] - 1][1],
+            solution.tree_data[i][0],
+        ) and crossable_gam(
+            solution.tree_data[solution.tree_right[i] - 1][0],
+            solution.tree_data[solution.tree_right[i] - 1][1],
+            solution.tree_data[i][1],
+        )
 
-    def handle_interupt(signum, frame, ask=True):
-        with open("distribute_data_2.json", "w") as f:
-            json.dump(db.db, f)
-        exit(0)
+    def crossable_gam(gx, gy, gz) -> bool:
+        mat_pref = 0
+        mat_suff = 0
+        while mat_pref < n_loci and gz[mat_pref] == gx[mat_pref]:
+            mat_pref += 1
+        while mat_suff < n_loci - mat_pref and gz[-1 - mat_suff] == gy[-1 - mat_suff]:
+            mat_suff += 1
 
-    signal.signal(signal.SIGINT, handle_interupt)
+        if mat_pref + mat_suff >= n_loci:
+            return True
 
-    for n_loci in range(1, 10):
-        for dist_array in gen_distribute_instances(n_loci):
-            print(dist_array)
-            if dist_array not in db:
-                solution = breeding_program_distribute(n_loci, dist_array)
-                db[dist_array] = solution
+        mat_pref = 0
+        mat_suff = 0
+        while mat_pref < n_loci and gz[mat_pref] == gy[mat_pref]:
+            mat_pref += 1
+        while mat_suff < n_loci - mat_pref and gz[-1 - mat_suff] == gx[-1 - mat_suff]:
+            mat_suff += 1
 
-    handle_interupt(None, None)
+        return mat_pref + mat_suff >= n_loci
+
+    def is_ideotype(i: int) -> bool:
+        return solution.tree_data[i] == [[1] * n_loci] * 2
+
+    assert len(solution.tree_data) == n_tcells
+    assert len(solution.tree_type) == n_tcells
+    assert len(solution.tree_left) == n_tcells
+    assert len(solution.tree_right) == n_tcells
+    # Nulls at the back
+    assert n_plants <= n_tcells
+    assert all(ty in ("Node", "Leaf") for ty in solution.tree_type[:n_plants])
+    assert all(ty == "Null" for ty in solution.tree_type[n_plants:])
+    assert n_cross == solution.objective
+    # Crossings in the front
+    assert n_cross < n_plants
+    assert all(ty == "Node" for ty in solution.tree_type[:n_cross])
+    assert all(ty == "Leaf" for ty in solution.tree_type[n_cross:])
+    # Constraint on leaves
+    assert all(
+        solution.tree_left[i] == solution.tree_right[i] == 0
+        for i in range(n_plants)
+        if solution.tree_type[i] == "Leaf"
+    )
+    assert all(
+        solution.tree_left[i] > 0
+        and solution.tree_right[i] > 0
+        and crossable(i)
+        for i in range(n_plants)
+        if solution.tree_type[i] == "Node"
+    )
+    # DAG
+    # ideotype
+    assert sum(is_ideotype(i) for i in range(n_plants)) == 1
+
+    return all(
+        [
+            len(solution.tree_data) == n_tcells,
+            len(solution.tree_type) == n_tcells,
+            len(solution.tree_left) == n_tcells,
+            len(solution.tree_right) == n_tcells,
+            # Nulls at the back
+            n_plants <= n_tcells,
+            all(ty in ("Node", "Leaf") for ty in solution.tree_type[:n_plants]),
+            all(ty == "Null" for ty in solution.tree_type[n_plants:]),
+            n_cross == solution.objective,
+            # Crossings in the front
+            n_cross < n_plants,
+            all(ty == "Node" for ty in solution.tree_type[:n_cross]),
+            all(ty == "Leaf" for ty in solution.tree_type[n_cross:]),
+            # Constraint on leaves
+            all(
+                solution.tree_left[i] == solution.tree_right[i] == 0
+                for i in range(n_plants)
+                if solution.tree_type[i] == "Leaf"
+            ),
+            all(
+                solution.tree_left[i] > 0
+                and solution.tree_right[i] > 0
+                and crossable(i)
+                for i in range(n_plants)
+                if solution.tree_type[i] == "Node"
+            ),
+            # DAG
+            # ideotype
+            sum(is_ideotype(i) for i in range(n_plants)) == 1,
+        ]
+    )
