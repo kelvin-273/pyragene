@@ -28,16 +28,24 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     # v = m.addMVar((1 << n_loci, T), vtype="B")
     v = [[m.addVar(vtype="B") for t in range(T)] for gx in range(1 << n_loci)]
 
-    # Binary variables denoting whether gametes gx and gy are used to CREATE
-    # a new genotype in generation t
-    # w = m.addMVar((1 << n_loci, 1 << n_loci, T), vtype="B")
-    w = [
-        [[m.addVar(vtype="B") for t in range(T)] for gy in range(1 << n_loci)]
-        for gx in range(1 << n_loci)
-    ]
+    # # Binary variables denoting whether gametes gx and gy are used to CREATE
+    # # a new genotype in generation t
+    # # w = m.addMVar((1 << n_loci, 1 << n_loci, T), vtype="B")
+    # w = [
+    #     [[m.addVar(vtype="B") for t in range(T)] for gy in range(1 << n_loci)]
+    #     for gx in range(1 << n_loci)
+    # ]
 
     # Minimise the number of crossings
-    m.setObjective(sum(xt for r in w for c in r for xt in c), gp.GRB.MINIMIZE)
+    # m.setObjective(sum(xt for r in w for c in r for xt in c), gp.GRB.MINIMIZE)
+    m.setObjective(
+        sum(
+            u[gx][gy][T] - u[gx][gy][0]
+            for gx in range(1 << n_loci)
+            for gy in range(1 << n_loci)
+        ),
+        gp.GRB.MINIMIZE,
+    )
 
     # A genotype is available in generation 0 if and only if it is
     # in the initial population
@@ -51,18 +59,18 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     # Target x* available in generation T+1
     m.addConstr(u[(1 << n_loci) - 1][(1 << n_loci) - 1][T] == 1)
 
-    # # If a genotype x is available in generation t-1 then it is available
-    # # in generation t
-    # for gx in range(1 << n_loci):
-    #     for gy in range(1 << n_loci):
-    #         for t in range(T):
-    #             m.addConstr(u[gx][gy][t] <= u[gx][gy][t + 1])
-
-    # A genotype can only be available if it is created
+    # If a genotype x is available in generation t-1 then it is available
+    # in generation t
     for gx in range(1 << n_loci):
         for gy in range(1 << n_loci):
             for t in range(T):
-                m.addConstr(w[gx][gy][t] == u[gx][gy][t + 1] - u[gx][gy][t])
+                m.addConstr(u[gx][gy][t] <= u[gx][gy][t + 1])
+
+    # # A genotype can only be available if it is created
+    # for gx in range(1 << n_loci):
+    #     for gy in range(1 << n_loci):
+    #         for t in range(T):
+    #             m.addConstr(w[gx][gy][t] == u[gx][gy][t + 1] - u[gx][gy][t])
 
     # # If a gamete gx is available in generation t-1 then it is available
     # # in generation t
@@ -90,8 +98,7 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
         parent_gametes = list(gen_parent_gametes(n_loci, gz))
         for t in range(T):
             m.addConstr(
-                (1 - v[gz][t])
-                + sum(u[gx][gy][t] for gx, gy in parent_gametes)
+                (1 - v[gz][t]) + sum(u[gx][gy][t] for gx, gy in parent_gametes)
                 >= 1
             )
 
@@ -100,8 +107,12 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     for gx in range(1 << n_loci):
         for gy in range(1 << n_loci):
             for t in range(T):
-                m.addConstr(w[gx][gy][t] <= v[gx][t])
-                m.addConstr(w[gx][gy][t] <= v[gy][t])
+                m.addConstr(
+                    2 * u[gx][gy][t + 1] - 2 * u[gx][gy][t]
+                    <= v[gx][t] + v[gy][t]
+                )
+                # m.addConstr(w[gx][gy][t] <= v[gx][t])
+                # m.addConstr(w[gx][gy][t] <= v[gy][t])
 
     # # Symmetry breaking
     # for gx in range(1 << n_loci):
@@ -256,7 +267,10 @@ if __name__ == "__main__":
     print(
         breeding_program(
             n_loci,
-            [PlantSPC(n_loci, 0b1010, 0b1010,), PlantSPC(n_loci, 0b0101, 0b0101,),],
+            [
+                PlantSPC(n_loci, 0b1010, 0b1010,),
+                PlantSPC(n_loci, 0b0101, 0b0101,),
+            ],
         )
     )
     n_loci = 4
@@ -282,7 +296,12 @@ if __name__ == "__main__":
         )
     )
 
-    from eugene.solvers.base_min_crossings_minizinc import breeding_program as g_mzn
+    from eugene.solvers.base_min_crossings_minizinc import (
+        breeding_program as g_mzn,
+    )
+    from random import seed
+    seed(0)
+
     g_mip = breeding_program
     # for n_loci in range(2, 6):
     for n_loci in range(6, 7):
