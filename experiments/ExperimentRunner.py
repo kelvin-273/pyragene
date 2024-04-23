@@ -55,7 +55,6 @@ class ExperimentRunner:
         pass
 
 
-
 if __name__ == '__main__':
     from time import sleep
     runner = ExperimentRunner(range(100), [

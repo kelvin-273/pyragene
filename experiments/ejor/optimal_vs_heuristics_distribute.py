@@ -37,8 +37,9 @@ with ed.CachedDB("./distribute_data_3.json", ed.DistributeDB, read_only=False) a
         obj_arr_heu = []
 
         for case in cases:
+            print(case, end="\t")
             obj_opt = solver_opt(case).objective
             obj_heu = solver_heu(case).objective
             obj_arr_opt.append(obj_opt)
             obj_arr_heu.append(obj_heu)
-            print(case, obj_opt, obj_heu, obj_heu - obj_opt, sep="\t")
+            print(obj_opt, obj_heu, obj_heu - obj_opt, sep="\t")

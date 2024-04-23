@@ -80,18 +80,18 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     # ≡ forall(v[gx][t] \/ -u[x] : gx in x)
     for gx in range(1 << n_loci):
         for gy in range(1 << n_loci):
-            for t in range(T):
-                for gz in gen_recombined_gametes(n_loci, gx, gy):
+            for gz in gen_recombined_gametes(n_loci, gx, gy):
+                for t in range(T):
                     m.addConstr(v[gz][t] >= u[gx][gy][t])
 
     # v[gx][t] -> exists(u[x] : gx in x)
     # ≡ -v[gx][t] \/ exists(u[x] : gx in x)
     for gz in range(1 << n_loci):
+        parent_gametes = list(gen_parent_gametes(n_loci, gz))
         for t in range(T):
-            pass
             m.addConstr(
                 (1 - v[gz][t])
-                + sum(u[gx][gy][t] for gx, gy in gen_parent_gametes(n_loci, gz))
+                + sum(u[gx][gy][t] for gx, gy in parent_gametes)
                 >= 1
             )
 
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     print(
         breeding_program(
             n_loci,
-            [PlantSPC(n_loci, 0b1010, 0b1010,), PlantSPC(n_loci, 0b1010, 0b1010,),],
+            [PlantSPC(n_loci, 0b1010, 0b1010,), PlantSPC(n_loci, 0b0101, 0b0101,),],
         )
     )
     n_loci = 4
@@ -281,3 +281,13 @@ if __name__ == "__main__":
             ],
         )
     )
+
+    from eugene.solvers.base_min_crossings_minizinc import breeding_program as g_mzn
+    g_mip = breeding_program
+    # for n_loci in range(2, 6):
+    for n_loci in range(6, 7):
+        for _ in range(100):
+            case = PlantSPC.initial_pop_random(n_loci, 3, p=0.2)
+            res_mzn = g_mzn(n_loci, case)
+            res_mip = g_mip(n_loci, case)
+            assert res_mzn.objective == res_mip.objective

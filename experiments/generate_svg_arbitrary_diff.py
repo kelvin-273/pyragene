@@ -6,9 +6,12 @@ import eugene.solvers.base_min_crossings_wedges as ew
 import eugene.solvers.base_min_crossings_minizinc as em
 import eugene.solvers.enumerators as ed
 
-seed(7)
+# seed(7)
+seed(0)
 n_loci = 16
 n_pop = 5
+# n_loci = 8
+# n_pop = 4
 SIDE_LENGTH = 40
 STROKE_WIDTH = 2
 STROKE_COLOR = "black"
@@ -20,7 +23,7 @@ GAP_WITH = STROKE_WIDTH
 PLOIDY = 2
 
 # initialise random population
-pop_0 = ep2.PlantSPC.initial_pop_random(n_loci, n_pop, p=0.5)
+pop_0 = ep2.PlantSPC.initial_pop_random(n_loci, n_pop, p=0.3)
 
 # extract gametes
 gop_0 = []

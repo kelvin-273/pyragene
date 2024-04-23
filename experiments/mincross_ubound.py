@@ -1,5 +1,6 @@
 from eugene import utils as eu
 
+
 def max_repeated_wedges_faster_1(dist_arr):
     n_loci = len(dist_arr)
     if n_loci <= 3:
@@ -15,7 +16,6 @@ def max_repeated_wedges_faster_1(dist_arr):
         for i in range(n_diff)
     ]
     __import__('pprint').pprint([[int(x) for x in row] for row in adjacent])
-    
 
     xs = [False] * n_diff
 
