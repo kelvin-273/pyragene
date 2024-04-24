@@ -16,9 +16,16 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     # Binary variables denoting whether genotype (gx, gy) is AVAILABLE in
     # generation t
     # u = m.addMVar((1 << n_loci, 1 << n_loci, T + 1), vtype="B")
+    # u = [
+    #     [
+    #         [m.addVar(vtype="B") for t in range(T + 1)]
+    #         for gy in range(1 << n_loci)
+    #     ]
+    #     for gx in range(1 << n_loci)
+    # ]
     u = [
         [
-            [m.addVar(vtype="B") for t in range(T + 1)]
+            [m.addVar(vtype="B") if gy <= gx else None for t in range(T + 1)]
             for gy in range(1 << n_loci)
         ]
         for gx in range(1 << n_loci)
@@ -38,11 +45,19 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
 
     # Minimise the number of crossings
     # m.setObjective(sum(xt for r in w for c in r for xt in c), gp.GRB.MINIMIZE)
+    # m.setObjective(
+    #     sum(
+    #         u[gx][gy][T] - u[gx][gy][0]
+    #         for gx in range(1 << n_loci)
+    #         for gy in range(1 << n_loci)
+    #     ),
+    #     gp.GRB.MINIMIZE,
+    # )
     m.setObjective(
         sum(
             u[gx][gy][T] - u[gx][gy][0]
             for gx in range(1 << n_loci)
-            for gy in range(1 << n_loci)
+            for gy in range(gx + 1)
         ),
         gp.GRB.MINIMIZE,
     )
@@ -52,8 +67,10 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     gen_0 = [[0] * (1 << n_loci) for _ in range(1 << n_loci)]
     for x in pop_0:
         gen_0[x.chrom1][x.chrom2] = 1
+        gen_0[x.chrom2][x.chrom1] = 1
     for gx in range(1 << n_loci):
-        for gy in range(1 << n_loci):
+        # for gy in range(1 << n_loci):
+        for gy in range(gx + 1):
             m.addConstr(u[gx][gy][0] == gen_0[gx][gy])
 
     # Target x* available in generation T+1
@@ -62,7 +79,7 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     # If a genotype x is available in generation t-1 then it is available
     # in generation t
     for gx in range(1 << n_loci):
-        for gy in range(1 << n_loci):
+        for gy in range(gx + 1):
             for t in range(T):
                 m.addConstr(u[gx][gy][t] <= u[gx][gy][t + 1])
 
@@ -87,7 +104,8 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     # ≡ v[gx][t] \/ forall(-u[x] : gx in x)
     # ≡ forall(v[gx][t] \/ -u[x] : gx in x)
     for gx in range(1 << n_loci):
-        for gy in range(1 << n_loci):
+        # for gy in range(1 << n_loci):
+        for gy in range(gx + 1):
             for gz in gen_recombined_gametes(n_loci, gx, gy):
                 for t in range(T):
                     m.addConstr(v[gz][t] >= u[gx][gy][t])
@@ -98,14 +116,14 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
         parent_gametes = list(gen_parent_gametes(n_loci, gz))
         for t in range(T):
             m.addConstr(
-                (1 - v[gz][t]) + sum(u[gx][gy][t] for gx, gy in parent_gametes)
+                (1 - v[gz][t]) + sum(u[gx][gy][t] for gx, gy in parent_gametes if gy <= gx)
                 >= 1
             )
 
     # The gametes required to create x must be available
     # in order for x to be created
     for gx in range(1 << n_loci):
-        for gy in range(1 << n_loci):
+        for gy in range(gx + 1):
             for t in range(T):
                 m.addConstr(
                     2 * u[gx][gy][t + 1] - 2 * u[gx][gy][t]
@@ -303,8 +321,8 @@ if __name__ == "__main__":
     seed(0)
 
     g_mip = breeding_program
-    # for n_loci in range(2, 6):
-    for n_loci in range(6, 7):
+    # for n_loci in range(6, 7):
+    for n_loci in range(2, 6):
         for _ in range(100):
             case = PlantSPC.initial_pop_random(n_loci, 3, p=0.2)
             res_mzn = g_mzn(n_loci, case)
