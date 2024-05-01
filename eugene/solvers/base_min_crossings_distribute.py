@@ -93,9 +93,8 @@ def breeding_program_distribute(
     n_plants = sub_solution.n_plants
 
     # translate solution back to original problem
-    sub_sol_rev = permute_base_solution(
-        sub_solution,
-        list(reversed(range(n_crossings))) + list(range(n_crossings, n_plants)),
+    sub_sol_rev = sub_solution.permute_base_solution(
+        list(reversed(range(n_crossings))) + list(range(n_crossings, n_plants))
     )
     old_tree_data_len = len(tree_data)
     tree_data.extend(
@@ -177,53 +176,15 @@ def breeding_program_distribute(
             ):
                 raise ValueError("solution Leaf and dist_array_simple are incongruent")
 
-    return permute_base_solution(
-        BaseSolution(
-            tree_data=tree_data,
-            tree_type=tree_type,
-            tree_left=tree_left,
-            tree_right=tree_right,
-            objective=objective,
-        ),
-        list(
-            reversed(
-                range(
-                    len(tree_data) - objective,
-                    len(tree_data),
-                )
-            )
-        )
-        + list(range(len(tree_data) - objective)),
-    )
-
-
-def permute_base_solution(solution: BaseSolution, permutation):
-    """
-    Creates BaseSolution whose arrays are rearranged according a `permutation` array
-    """
-    if solution.n_plants != len(permutation):
-        raise ValueError("mismatch between size of solution and permutation")
-    if sorted(permutation) != list(range(len(permutation))):
-        raise ValueError("permutation is invalid")
-    inv_permutation = [None] * len(permutation)
-    for i, x in enumerate(permutation):
-        inv_permutation[x] = i
-    tree_data = [solution.tree_data[x] for x in permutation]
-    tree_type = [solution.tree_type[x] for x in permutation]
-    tree_left = [
-        inv_permutation[solution.tree_left[x] - 1] + 1 if solution.tree_left[x] else 0
-        for x in permutation
-    ]
-    tree_right = [
-        inv_permutation[solution.tree_right[x] - 1] + 1 if solution.tree_right[x] else 0
-        for x in permutation
-    ]
     return BaseSolution(
         tree_data=tree_data,
         tree_type=tree_type,
         tree_left=tree_left,
         tree_right=tree_right,
-        objective=solution.objective,
+        objective=objective,
+    ).permute_base_solution(
+        list(reversed(range(len(tree_data) - objective, len(tree_data),)))
+        + list(range(len(tree_data) - objective)),
     )
 
 

@@ -85,3 +85,34 @@ class BaseSolution:
 
     def crossings(self):
         return sum(t == "Node" for t in self.tree_type)
+
+    def permute_base_solution(self, permutation):
+        """
+        Creates BaseSolution whose arrays are rearranged according a `permutation` array
+        """
+        if self.n_plants != len(permutation):
+            raise ValueError("mismatch between size of solution and permutation")
+        if sorted(permutation) != list(range(len(permutation))):
+            raise ValueError("permutation is invalid")
+        inv_permutation = [None] * len(permutation)
+        for i, x in enumerate(permutation):
+            inv_permutation[x] = i
+        tree_data = [self.tree_data[x] for x in permutation]
+        tree_type = [self.tree_type[x] for x in permutation]
+        tree_left = [
+            inv_permutation[self.tree_left[x] - 1] + 1 if self.tree_left[x] else 0
+            for x in permutation
+        ]
+        tree_right = [
+            inv_permutation[self.tree_right[x] - 1] + 1 if self.tree_right[x] else 0
+            for x in permutation
+        ]
+        return BaseSolution(
+            tree_data=tree_data,
+            tree_type=tree_type,
+            tree_left=tree_left,
+            tree_right=tree_right,
+            objective=self.objective,
+        )
+
+
