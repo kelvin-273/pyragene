@@ -13,7 +13,7 @@ setup(
     packages=["eugene"],
     install_requires=[
         "bitarray"
-        "gurobipy=10.0.1",
+        "gurobipy==11.0.1",
         "minizinc",
         "eugene_rs",
     ]
