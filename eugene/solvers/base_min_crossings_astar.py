@@ -11,7 +11,7 @@ def breeding_program_distribute(dist_array: List[int]) -> BaseSolution:
 
 def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     pop_1 = [[[bool(b) for b in c] for c in x.to_bitlist()] for x in pop_0]
-    res = eurs.breeding_program_python(n_loci, pop_1)
+    res = eurs.min_cross.astar.breeding_program_python(n_loci, pop_1)
     return BaseSolution(*res)
 
 
