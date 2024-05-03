@@ -162,7 +162,7 @@ def instance_array_genotype(pop_0: List[ep2.PlantSPC], max_crossovers):
 
 
 DEFAULT_CTX = MinizincContext.from_solver_and_model_file(
-    "sat", "../minizinc/genotype/modelGenotypes.mzn"
+    "sat", "./eugene/solvers/minizinc/mincross.mzn"
 )
 
 
