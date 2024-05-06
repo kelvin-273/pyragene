@@ -112,11 +112,15 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
 
     # v[gx][t] -> exists(u[x] : gx in x)
     # ≡ -v[gx][t] \/ exists(u[x] : gx in x)
+    parent_gamete_masks = list(gen_parent_gametes_fast_masks(n_loci))
     for gz in range(1 << n_loci):
-        parent_gametes = list(gen_parent_gametes(n_loci, gz))
+        parent_gametes = parent_gametes_from_masks(
+            n_loci, gz, parent_gamete_masks
+        )
         for t in range(T):
             m.addConstr(
-                (1 - v[gz][t]) + sum(u[gx][gy][t] for gx, gy in parent_gametes if gy <= gx)
+                (1 - v[gz][t])
+                + sum(u[gx][gy][t] for gx, gy in parent_gametes if gy <= gx)
                 >= 1
             )
 
@@ -183,67 +187,41 @@ def gen_parent_gametes(n_loci: int, gz: int):
                 yield (gx, gy)
 
 
-def gen_parent_gametes_fast(gz: int):
-    # Far out, this is gonna be a backtracking algorithm
-    gx_arr = [0] * n_loci
-    gy_arr = [0] * n_loci
-    gz_arr = [0] * n_loci
-    gz_tmp = gz
-    for i in reversed(n_loci):
-        b = gz_tmp & 1
-        gz_tmp >> 1
-        gz_arr[i] = b
+def gen_parent_gametes_fast_masks(n_loci: int):
+    mask_0 = (1 << n_loci) - 1
 
-    # At the start of an iteration at locus p, k_state indicates which parent
-    # is responsible for the prefix up to locus p-1.
-    # k_state = 0 -> both parents could be responsible for the prefix
-    # k_state = 1 -> only gx could be responsible for the prefix
-    # k_state = 2 -> only gy could be responsible for the prefix
-    #
-    # Furthermore, if k != 0 then the suffix is set by the other parent
-    k_state = 0
-    k_point = 0
+    # No targetG
+    for len_tail in range(1, n_loci):
+        len_head = n_loci - len_tail
+        base_tail = (1 << len_tail) - 1
+        base_head = mask_0 ^ base_tail
+        for comp_head in range((1 << len_head) - 1):
+            for comp_tail in range(1 << (len_tail - 1)):
+                c1 = base_head | comp_tail
+                c2 = (comp_head << len_tail) | base_tail
+                yield c1, c2
+                yield c2, c1
 
-    def intify(arr: List[int]) -> int:
-        """
-        Returns the integer representation of the bit.
-        Assumes every element in the bit array is either 0 or 1.
-        """
-        out = 0
-        for b in arr:
-            out <<= 1
-            out &= b
-        return out
+    # One targetG
+    for comp in range((1 << n_loci) - 1):
+        yield mask_0, comp
+        yield comp, mask_0
 
-    def aux(p: int):
-        if p == n_loci:
-            yield (intify(gx_arr), intify(gy_arr))
-        else:
-            if k_state == 0:
-                if gz_arr[p] == 0:
-                    pass
+    # Both targetG
+    yield (mask_0, mask_0)
 
-                pass
 
-                pass
-
-                if gz_arr[p] == 1:
-                    pass
-
-            elif k_state == 1:
-                gy_arr[p] = 0
-                yield from aux(p)
-                gy_arr[p] = 1
-                yield from aux(p)
-
-            elif k_state == 2:
-                gx_arr[p] = 0
-                yield from aux(p)
-                gx_arr[p] = 1
-                yield from aux(p)
-
-            else:
-                raise ValueError("k_state takes an undefined value")
+def parent_gametes_from_masks(
+    n_loci: int, gz: int, parent_gamete_masks: List[int]
+):
+    mask_0 = (1 << n_loci) - 1
+    return [
+        (
+            mask_0 ^ mask_l ^ gz,
+            mask_0 ^ mask_r ^ gz
+        )
+        for mask_l, mask_r in parent_gamete_masks
+    ]
 
 
 def gen_recombined_gametes(n_loci, gx, gy):
