@@ -24,7 +24,7 @@ SOLVERS = [
 
 N_LOCI = list(range(2, 11))
 N_POP = [2, 4, 6, 8]
-N_INST = 100
+N_INST = 1
 N_TRIALS = 5
 
 INSTANCES = {
@@ -46,7 +46,7 @@ def solver_astar(n_loci, pop_0):
 
 
 CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
-    "sat", "./eugene/solvers/minizinc/modelGenotypes.mzn"
+    "sat", "./eugene/solvers/minizinc/mincross.mzn"
 )
 
 
@@ -57,7 +57,7 @@ def solver_cp_sat(n_loci, pop_0):
 
 
 CTX_MIP = emzn.MinizincContext.from_solver_and_model_file(
-    "gurobi", "./eugene/solvers/minizinc/modelGenotypes.mzn"
+    "gurobi", "./eugene/solvers/minizinc/mincross.mzn"
 )
 
 
@@ -89,12 +89,14 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--solver")
     parser.add_argument("-o", "--output_file")
     parser.add_argument("-l", "--loci")
+    parser.add_argument("-p", "--pop")
     args = parser.parse_args()
     print(args)
 
     solver = args.solver
     output_file = args.output_file
     loci_string = args.loci
+    pop_string = args.pop
 
     if output_file is None:
         output_file = ""
@@ -133,6 +135,28 @@ if __name__ == "__main__":
     else:
         raise ValueError("incorrect format for loci set")
 
+    """
+    The follwing extension to the interface doesn't work because
+    the instance generation is happening before this point.
+
+    if pop_string is None:
+        pop_string = "2, 4, 6, 8"
+
+    if pop_string.isnumeric():
+        N_POP = [eval(pop_string)]
+    elif pop_string.count("-") == 1 and all(
+        s.isnumeric() for s in pop_string.split("-")
+    ):
+        s, e = (int(c) for c in pop_string.split("-"))
+        N_POP = list(range(s, e + 1))
+    elif pop_string.count("-") == 0 and all(
+        s.isnumeric() for s in pop_string.split(",")
+    ):
+        N_POP = [eval(s) for s in pop_string.split(",")]
+    else:
+        raise ValueError("incorrect format for pop set")
+    """
+
     for name, solver in solvers:
         for n_loci in N_LOCI:
             for n_pop in N_POP:
@@ -159,6 +183,7 @@ if __name__ == "__main__":
                                 "solver": name,
                                 "n_loci": n_loci,
                                 "n_pop": n_pop,
+                                "n_trials": N_TRIALS,
                                 "times_l1": times_l1,
                                 "times_l2": times_l2,
                                 "objectives": objectives,
@@ -173,6 +198,7 @@ if __name__ == "__main__":
                                     "solver": name,
                                     "n_loci": n_loci,
                                     "n_pop": n_pop,
+                                    "n_trials": N_TRIALS,
                                     "times_l1": times_l1,
                                     "times_l2": times_l2,
                                     "objectives": objectives,
