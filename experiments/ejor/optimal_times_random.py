@@ -25,7 +25,7 @@ SOLVERS = [
 N_LOCI = list(range(2, 11))
 N_POP = [2, 4, 6, 8]
 N_INST = 100
-N_TRIALS = 4
+N_TRIALS = 5
 
 INSTANCES = {
     n_loci: {
@@ -136,6 +136,7 @@ if __name__ == "__main__":
         for n_loci in N_LOCI:
             for n_pop in N_POP:
                 instances = INSTANCES[n_loci][n_pop]
+                objectives = [None] * N_INST
                 times_l1 = [0] * N_INST
                 times_l2 = [0] * N_INST
                 start = time.time()
@@ -143,10 +144,11 @@ if __name__ == "__main__":
                     time_l1 = 0
                     time_l2 = 0
                     for _ in range(N_TRIALS):
-                        solver(n_loci, inst)
+                        objective = solver(n_loci, inst).objective
                         time_res = time.time() - time_l1 - start
                         time_l1 += time_res
                         time_l2 += time_res ** 2
+                    objectives[i] = objective
                     times_l1[i] = time_l1 / N_TRIALS
                     times_l2[i] = time_l2 / N_TRIALS ** 2
                 if output_file == "":
@@ -158,6 +160,7 @@ if __name__ == "__main__":
                                 "n_pop": n_pop,
                                 "times_l1": times_l1,
                                 "times_l2": times_l2,
+                                "objectives": objectives,
                             }
                         )
                     )
@@ -171,6 +174,7 @@ if __name__ == "__main__":
                                     "n_pop": n_pop,
                                     "times_l1": times_l1,
                                     "times_l2": times_l2,
+                                    "objectives": objectives,
                                 }
                             ),
                             file=f
