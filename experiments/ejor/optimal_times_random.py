@@ -24,7 +24,7 @@ SOLVERS = [
 
 N_LOCI = list(range(2, 11))
 N_POP = [2, 4, 6, 8]
-N_INST = 1
+N_INST = 100
 N_TRIALS = 5
 
 INSTANCES = {
