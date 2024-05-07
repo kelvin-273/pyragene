@@ -124,7 +124,8 @@ if __name__ == "__main__":
     elif loci_string.count("-") == 1 and all(
         s.isnumeric() for s in loci_string.split("-")
     ):
-        N_LOCI = [eval(s) for s in loci_string.split("-")]
+        s, e = (int(c) for c in loci_string.split("-"))
+        N_LOCI = list(range(s, e + 1))
     elif loci_string.count("-") == 0 and all(
         s.isnumeric() for s in loci_string.split(",")
     ):
