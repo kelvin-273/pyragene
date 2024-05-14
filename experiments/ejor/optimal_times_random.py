@@ -14,18 +14,10 @@ from eugene.plant_models.plant2 import PlantSPC
 
 seed(0)
 
-SOLVERS = [
-    # ("CANZAR", None),
-    ("CP-SAT", None),
-    ("CP-MIP", None),
-    ("MIP", None),
-    ("A*", None),
-]
-
 N_LOCI = list(range(2, 11))
 N_POP = [2, 4, 6, 8]
 N_INST = 100
-N_TRIALS = 5
+N_TRIALS = 1
 
 INSTANCES = {
     n_loci: {
@@ -113,6 +105,8 @@ if __name__ == "__main__":
 
     if solver is None:
         solvers = SOLVERS.items()
+    elif solver.upper() == "ASTAR":
+        solvers = [("A*", SOLVERS["A*"])]
     elif solver.upper() not in SOLVERS:
         raise ValueError("solver not available")
     else:
