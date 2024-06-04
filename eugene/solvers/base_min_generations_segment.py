@@ -5,7 +5,7 @@ from eugene.solution import BaseSolution
 from typing import List
 
 
-def breeding_program_distribute(dist_array: List[int]) -> BaseSolution:
+def breeding_program_distribute(dist_array: List[int], timeout=None) -> BaseSolution:
     """
     Solves a distribute instance using the minizinc model.
     A MinizincContext can be passed in as an optional parameter,
@@ -14,10 +14,10 @@ def breeding_program_distribute(dist_array: List[int]) -> BaseSolution:
     n_loci = len(dist_array)
     pop_0 = eu.distribute_to_plants(dist_array)
 
-    return breeding_program(n_loci, pop_0)
+    return breeding_program(n_loci, pop_0, timeout=timeout)
 
 
-def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
+def breeding_program(n_loci: int, pop_0: List[PlantSPC], timeout=None) -> BaseSolution:
     """
     Solves a distribute instance using the minizinc model.
     A MinizincContext can be passed in as an optional parameter,
@@ -30,5 +30,6 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
             [[bool(allele) for allele in row] for row in x.to_bitlist()]
             for x in pop_0
         ],
+        timeout=timeout
     )
     return BaseSolution(*result)

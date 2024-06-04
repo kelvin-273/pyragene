@@ -5,13 +5,15 @@ from eugene.utils import distribute_to_plants
 from typing import List
 
 
-def breeding_program_distribute(dist_array: List[int]) -> BaseSolution:
-    return breeding_program(len(dist_array), distribute_to_plants(dist_array))
+def breeding_program_distribute(dist_array: List[int], timeout=None) -> BaseSolution:
+    n_loci = len(dist_array)
+    pop_0 = distribute_to_plants(dist_array)
+    return breeding_program(n_loci, pop_0, timeout=timeout)
 
 
-def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
+def breeding_program(n_loci: int, pop_0: List[PlantSPC], timeout=None) -> BaseSolution:
     pop_1 = [[[bool(b) for b in c] for c in x.to_bitlist()] for x in pop_0]
-    res = eurs.min_cross.astar.breeding_program_python(n_loci, pop_1)
+    res = eurs.min_cross.astar.breeding_program_python(n_loci, pop_1, timeout=timeout)
     return BaseSolution(*res)
 
 
