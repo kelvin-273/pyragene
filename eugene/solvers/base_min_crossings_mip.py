@@ -5,11 +5,13 @@ from eugene.utils import distribute_to_plants
 import gurobipy as gp
 
 
-def breeding_program_distribute(dist_array: List[int]) -> BaseSolution:
-    return breeding_program(len(dist_array), distribute_to_plants(dist_array))
+def breeding_program_distribute(dist_array: List[int], timeout=None) -> BaseSolution:
+    return breeding_program(
+        len(dist_array), distribute_to_plants(dist_array), timeout=timeout
+    )
 
 
-def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
+def breeding_program(n_loci: int, pop_0: List[PlantSPC], timeout=None) -> BaseSolution:
     m = gp.Model()
     T = upper_bound(n_loci, pop_0)
 
@@ -114,9 +116,7 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     # ≡ -v[gx][t] \/ exists(u[x] : gx in x)
     parent_gamete_masks = list(gen_parent_gametes_fast_masks(n_loci))
     for gz in range(1 << n_loci):
-        parent_gametes = parent_gametes_from_masks(
-            n_loci, gz, parent_gamete_masks
-        )
+        parent_gametes = parent_gametes_from_masks(n_loci, gz, parent_gamete_masks)
         for t in range(T):
             m.addConstr(
                 (1 - v[gz][t])
@@ -130,8 +130,7 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
         for gy in range(gx + 1):
             for t in range(T):
                 m.addConstr(
-                    2 * u[gx][gy][t + 1] - 2 * u[gx][gy][t]
-                    <= v[gx][t] + v[gy][t]
+                    2 * u[gx][gy][t + 1] - 2 * u[gx][gy][t] <= v[gx][t] + v[gy][t]
                 )
                 # m.addConstr(w[gx][gy][t] <= v[gx][t])
                 # m.addConstr(w[gx][gy][t] <= v[gy][t])
@@ -143,6 +142,8 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     #             m.addConstr(v[gx][t] + v[gy][t] + u[gx][gy][t + 2] - u[gx][gy][t + 1] <= 2)
 
     m.optimize()
+    if timeout is not None:
+        m.setParam("TimeLimit", timeout)
 
     # for t in range(T):
     #     # __import__('pprint').pprint(w[:, :, t].X)
@@ -156,11 +157,7 @@ def breeding_program(n_loci: int, pop_0: List[PlantSPC]) -> BaseSolution:
     #     print()
 
     return BaseSolution(
-        tree_data=[],
-        tree_type=[],
-        tree_left=[],
-        tree_right=[],
-        objective=m.objVal,
+        tree_data=[], tree_type=[], tree_left=[], tree_right=[], objective=m.objVal,
     )
 
 
@@ -211,15 +208,10 @@ def gen_parent_gametes_fast_masks(n_loci: int):
     yield (mask_0, mask_0)
 
 
-def parent_gametes_from_masks(
-    n_loci: int, gz: int, parent_gamete_masks: List[int]
-):
+def parent_gametes_from_masks(n_loci: int, gz: int, parent_gamete_masks: List[int]):
     mask_0 = (1 << n_loci) - 1
     return [
-        (
-            mask_0 ^ mask_l ^ gz,
-            mask_0 ^ mask_r ^ gz
-        )
+        (mask_0 ^ mask_l ^ gz, mask_0 ^ mask_r ^ gz)
         for mask_l, mask_r in parent_gamete_masks
     ]
 
@@ -237,15 +229,13 @@ if __name__ == "__main__":
     n_loci = 2
     print(
         breeding_program(
-            n_loci,
-            [PlantSPC(n_loci, 0b10, 0b10,), PlantSPC(n_loci, 0b01, 0b01,),],
+            n_loci, [PlantSPC(n_loci, 0b10, 0b10,), PlantSPC(n_loci, 0b01, 0b01,),],
         )
     )
     n_loci = 3
     print(
         breeding_program(
-            n_loci,
-            [PlantSPC(n_loci, 0b101, 0b101,), PlantSPC(n_loci, 0b010, 0b010,),],
+            n_loci, [PlantSPC(n_loci, 0b101, 0b101,), PlantSPC(n_loci, 0b010, 0b010,),],
         )
     )
     n_loci = 3
@@ -263,10 +253,7 @@ if __name__ == "__main__":
     print(
         breeding_program(
             n_loci,
-            [
-                PlantSPC(n_loci, 0b1010, 0b1010,),
-                PlantSPC(n_loci, 0b0101, 0b0101,),
-            ],
+            [PlantSPC(n_loci, 0b1010, 0b1010,), PlantSPC(n_loci, 0b0101, 0b0101,),],
         )
     )
     n_loci = 4
@@ -292,10 +279,9 @@ if __name__ == "__main__":
         )
     )
 
-    from eugene.solvers.base_min_crossings_minizinc import (
-        breeding_program as g_mzn,
-    )
+    from eugene.solvers.base_min_crossings_minizinc import breeding_program as g_mzn
     from random import seed
+
     seed(0)
 
     g_mip = breeding_program

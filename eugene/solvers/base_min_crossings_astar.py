@@ -2,19 +2,19 @@ import eugene_rs as eurs
 from eugene.solution import BaseSolution
 from eugene.plant_models.plant2 import PlantSPC
 from eugene.utils import distribute_to_plants
-from typing import List
+from typing import List, Optional
 
 
-def breeding_program_distribute(dist_array: List[int], timeout=None) -> BaseSolution:
+def breeding_program_distribute(dist_array: List[int], timeout=None) -> Optional[BaseSolution]:
     n_loci = len(dist_array)
     pop_0 = distribute_to_plants(dist_array)
     return breeding_program(n_loci, pop_0, timeout=timeout)
 
 
-def breeding_program(n_loci: int, pop_0: List[PlantSPC], timeout=None) -> BaseSolution:
+def breeding_program(n_loci: int, pop_0: List[PlantSPC], timeout=None) -> Optional[BaseSolution]:
     pop_1 = [[[bool(b) for b in c] for c in x.to_bitlist()] for x in pop_0]
     res = eurs.min_cross.astar.breeding_program_python(n_loci, pop_1, timeout=timeout)
-    return BaseSolution(*res)
+    return BaseSolution(*res) if res else None
 
 
 if __name__ == "__main__":

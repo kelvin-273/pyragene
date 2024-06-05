@@ -2,6 +2,7 @@ import contextlib
 import minizinc
 from math import ceil
 from typing import List
+from datetime import timedelta
 
 import eugene.utils as eu
 import eugene.plant_models.plant2 as ep2
@@ -9,7 +10,7 @@ from eugene.solution import BaseSolution
 
 
 def breeding_program_distribute(
-    n_loci, dist_array, ctx=None, processes=1
+    n_loci, dist_array, ctx=None, processes=1, timeout=None
 ) -> BaseSolution:
     """
     Solves a distribute instance using the minizinc model.
@@ -19,6 +20,8 @@ def breeding_program_distribute(
     items = instance_array_genotype_homo(
         instance_array=dist_array, max_crossovers=1
     ).items()
+    if timeout is not None:
+        timeout = timedelta(seconds=timeout)
 
     if ctx is None:
         ctx = MinizincContext.from_solver_and_model_file(
@@ -29,7 +32,10 @@ def breeding_program_distribute(
         for k, v in items:
             instance[k] = v
 
-        result = instance.solve(free_search=True, processes=processes)
+        print(timeout)
+        result = instance.solve(
+            free_search=True, processes=processes, timeout=timeout
+        )
         return BaseSolution(
             tree_data=result["xs"],
             tree_type=result["treeType"],
@@ -43,7 +49,8 @@ def breeding_program_distribute(
             for k, v in items:
                 instance[k] = v
 
-            result = instance.solve(free_search=True)
+            print(timeout)
+            result = instance.solve(free_search=True, timeout=timeout)
             return BaseSolution(
                 tree_data=result["xs"],
                 tree_type=result["treeType"],
@@ -53,7 +60,7 @@ def breeding_program_distribute(
             )
 
 
-def breeding_program(n_loci, pop_0, ctx=None) -> BaseSolution:
+def breeding_program(n_loci, pop_0, ctx=None, timeout=None) -> BaseSolution:
     """
     Solves a distribute instance using the minizinc model.
     A MinizincContext can be passed in as an optional parameter,
@@ -65,12 +72,14 @@ def breeding_program(n_loci, pop_0, ctx=None) -> BaseSolution:
         ctx = MinizincContext.from_solver_and_model_file(
             "sat", "./eugene/solvers/minizinc/mincross.mzn",
         )
+    if timeout is not None:
+        timeout = timedelta(seconds=timeout)
     with ctx.instance.branch() as instance:
 
         for k, v in items:
             instance[k] = v
 
-        result = instance.solve(free_search=True)
+        result = instance.solve(free_search=True, timeout=timeout)
         return BaseSolution(
             tree_data=result["xs"],
             tree_type=result["treeType"],
@@ -80,17 +89,23 @@ def breeding_program(n_loci, pop_0, ctx=None) -> BaseSolution:
         )
 
 
-def breeding_program_distribute_optimised(n_loci, dist_array, ctx=None) -> BaseSolution:
+def breeding_program_distribute_optimised(
+    n_loci, dist_array, ctx=None, timeout=None
+) -> BaseSolution:
     raise NotADirectoryError("still to decide what optimisations will go here")
     # bounds
     n_pop = max(dist_array) + 1
     bound_lower = ceil((n_loci + n_pop) / 2)
     bound_upper = ceil(n_loci / 2) + n_pop * n_pop - n_pop
 
-    leading_mins, mid, trailing_maxes = eu.distribute_sington_decomposition(dist_array)
+    leading_mins, mid, trailing_maxes = eu.distribute_sington_decomposition(
+        dist_array
+    )
 
     # minizinc model
-    return breeding_program_distribute(n_loci, dist_array, ctx=ctx)
+    return breeding_program_distribute(
+        n_loci, dist_array, ctx=ctx, timeout=timeout
+    )
 
 
 class MinizincContext:
@@ -136,7 +151,8 @@ def instance_array_genotype_homo(instance_array, max_crossovers):
         "nGenotypes": n_gametes,
         "nTreeCells": n_loci + n_gametes,
         "genotypes": [
-            [[1 if j == i else 0 for j in instance_array]] * 2 for i in range(n_gametes)
+            [[1 if j == i else 0 for j in instance_array]] * 2
+            for i in range(n_gametes)
         ],
     }
 
@@ -188,7 +204,10 @@ def check_solution(solution: BaseSolution) -> bool:
         mat_suff = 0
         while mat_pref < n_loci and gz[mat_pref] == gx[mat_pref]:
             mat_pref += 1
-        while mat_suff < n_loci - mat_pref and gz[-1 - mat_suff] == gy[-1 - mat_suff]:
+        while (
+            mat_suff < n_loci - mat_pref
+            and gz[-1 - mat_suff] == gy[-1 - mat_suff]
+        ):
             mat_suff += 1
 
         if mat_pref + mat_suff >= n_loci:
@@ -198,7 +217,10 @@ def check_solution(solution: BaseSolution) -> bool:
         mat_suff = 0
         while mat_pref < n_loci and gz[mat_pref] == gy[mat_pref]:
             mat_pref += 1
-        while mat_suff < n_loci - mat_pref and gz[-1 - mat_suff] == gx[-1 - mat_suff]:
+        while (
+            mat_suff < n_loci - mat_pref
+            and gz[-1 - mat_suff] == gx[-1 - mat_suff]
+        ):
             mat_suff += 1
 
         return mat_pref + mat_suff >= n_loci
