@@ -350,32 +350,35 @@ class PlantSPCBitarray:
     chrom2: frozenbitarray
 
     @staticmethod
-    def initial_pop_random(n_loci: int, n_individuals: int):
+    def initial_pop_random(n_loci: int, n_individuals: int, p=0.5):
         """
         Generates a population of uniform randomly generated plants such that
         the ideotype is in its span.
         """
-        out = [
-            # PlantSPC(n_loci, randrange(1 << n_loci), randrange(1 << n_loci))
-            PlantSPCBitarray(
-                n_loci,
-                frozenbitarray(urandom(n_loci)),
-                frozenbitarray(urandom(n_loci)),
-            )
-            for _ in range(n_individuals)
+        mask_max = ~zeros(n_loci)
+
+        def gen_chrom(n_loci, p):
+            c = zeros(n_loci)
+            for i in range(n_loci):
+                c[i] = random() < p
+            return c
+
+        def union(pop):
+            out = zeros(n_loci)
+            for a in pop:
+                out |= a
+            return out
+
+        pop = [gen_chrom(n_loci, p) for _ in range(2 * n_individuals)]
+        mask_cur = union(pop)
+
+        while mask_cur != mask_max:
+            pop = [x | (gen_chrom(n_loci, p) & ~mask_cur) for x in pop]
+            mask_cur = union(pop)
+        return [
+            PlantSPCBitarray(n_loci, pop[2 * i], pop[2 * i + 1])
+            for i in range(n_individuals)
         ]
-        while PlantSPCBitarray.union(n_loci, out) != frozenbitarray(
-            ~zeros(n_loci)
-        ):
-            out = [
-                PlantSPCBitarray(
-                    n_loci,
-                    frozenbitarray(urandom(n_loci)),
-                    frozenbitarray(urandom(n_loci)),
-                )
-                for _ in range(n_individuals)
-            ]
-        return out
 
     @staticmethod
     def union(n_loci, pop) -> int:
@@ -391,6 +394,11 @@ class PlantSPCBitarray:
         for x in pop:
             out |= x.chrom1 | x.chrom2
         return frozenbitarray(out)
+
+    def to_bitlist(self):
+        upper = self.chrom1
+        lower = self.chrom2
+        return [upper.tolist(), lower.tolist()]
 
 
 @dataclass
