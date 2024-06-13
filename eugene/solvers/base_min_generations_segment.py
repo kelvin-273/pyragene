@@ -37,3 +37,22 @@ def breeding_program(
         timeout=timeout,
     )
     return BaseSolution(*result) if result else None
+
+
+def mingen_answer(
+    n_loci: int, pop_0: List[PlantSPC], timeout=None
+) -> Optional[BaseSolution]:
+    """
+    Solves a distribute instance using the minizinc model.
+    A MinizincContext can be passed in as an optional parameter,
+    otherwise a MinizincContext is constructed using cp-sat from OR-Tools.
+    """
+
+    return eugene_rs.min_gen.segment.mingen_answer(
+        n_loci,
+        [
+            [[bool(allele) for allele in row] for row in x.to_bitlist()]
+            for x in pop_0
+        ],
+        timeout=timeout,
+    )

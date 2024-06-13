@@ -17,15 +17,15 @@ TIMEOOUT = 300
 
 
 def solver_enum(n_loci, pop_0):
-    return enum.breeding_program(n_loci, pop_0, timeout=TIMEOOUT)
+    return enum.mingen_answer(n_loci, pop_0, timeout=TIMEOOUT)
 
 
 def solver_edom(n_loci, pop_0):
-    return edom.breeding_program(n_loci, pop_0, timeout=TIMEOOUT)
+    return edom.mingen_answer(n_loci, pop_0, timeout=TIMEOOUT)
 
 
 def solver_eseg(n_loci, pop_0):
-    return eseg.breeding_program(n_loci, pop_0, timeout=TIMEOOUT)
+    return eseg.mingen_answer(n_loci, pop_0, timeout=TIMEOOUT)
 
 
 SOLVERS = {
@@ -120,6 +120,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Unexpected error: {e}", file=sys.stderr)
 
+        print(inst)
         for name, solver in solvers:
             start = time.time()
             result = solver(n_loci, inst)
@@ -132,7 +133,7 @@ if __name__ == "__main__":
                             "n_loci": n_loci,
                             "n_pop": n_pop,
                             "time_l1": time_res,
-                            "objective": result.objective
+                            "objective": result
                             if result is not None
                             else float("inf"),
                             "success": True if result is not None else False,
@@ -148,7 +149,7 @@ if __name__ == "__main__":
                                 "n_loci": n_loci,
                                 "n_pop": n_pop,
                                 "time_l1": time_res,
-                                "objective": result.objective
+                                "objective": result
                                 if result is not None
                                 else float("inf"),
                                 "success": True if result is not None else False,
