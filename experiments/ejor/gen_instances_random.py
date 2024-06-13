@@ -1,9 +1,7 @@
 import argparse
 import random
 import json
-from eugene.plant_models.plant2 import PlantSPC
-
-import argparse
+from eugene.plant_models.plant2 import PlantSPCBitarray
 
 # Create the parser
 parser = argparse.ArgumentParser(description="Process some integers.")
@@ -24,7 +22,7 @@ random.seed(0)
 for n_loci in range(2, n_loci_max+1):
     for n_pop in [2, 4, 6, 8]:
         for _ in range(n_instances):
-            pop_0 = PlantSPC.initial_pop_random(n_loci, n_pop)
+            pop_0 = PlantSPCBitarray.initial_pop_random(n_loci, n_pop)
             print(json.dumps({
                 "n_loci": n_loci,
                 "n_pop": n_pop,

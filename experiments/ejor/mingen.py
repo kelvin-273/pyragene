@@ -6,12 +6,14 @@ distribute instances.
 import os
 import json
 import sys
-from random import seed
 
 import eugene.solvers.base_min_generations_enumerator as enum
 import eugene.solvers.base_min_generations_enumerator_dominance as edom
 import eugene.solvers.base_min_generations_segment as eseg
-from eugene.plant_models.plant2 import PlantSPC
+
+# These are used in eval when reading instances
+from bitarray import bitarray
+from eugene.plant_models.plant2 import PlantSPCBitarray
 
 TIMEOOUT = 300
 
@@ -120,7 +122,6 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"Unexpected error: {e}", file=sys.stderr)
 
-        print(inst)
         for name, solver in solvers:
             start = time.time()
             result = solver(n_loci, inst)
