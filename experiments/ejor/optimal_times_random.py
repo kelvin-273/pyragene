@@ -18,6 +18,7 @@ N_LOCI = list(range(2, 11))
 N_POP = [2, 4, 6, 8]
 N_INST = 100
 N_TRIALS = 1
+TIMEOUT = 300
 
 INSTANCES = {
     n_loci: {
@@ -34,7 +35,7 @@ INSTANCES = {
 
 
 def solver_astar(n_loci, pop_0):
-    return east.breeding_program(n_loci, pop_0)
+    return east.breeding_program(n_loci, pop_0, timeout=TIMEOUT)
 
 
 CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
@@ -44,7 +45,7 @@ CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
 
 def solver_cp_sat(n_loci, pop_0):
     return emzn.breeding_program(
-        n_loci, pop_0, ctx=CTX_SAT
+        n_loci, pop_0, ctx=CTX_SAT, timeout=TIMEOUT
     )
 
 
@@ -55,12 +56,12 @@ CTX_MIP = emzn.MinizincContext.from_solver_and_model_file(
 
 def solver_cp_mip(n_loci, pop_0):
     return emzn.breeding_program(
-        n_loci, pop_0, ctx=CTX_MIP
+        n_loci, pop_0, ctx=CTX_MIP, timeout=TIMEOUT
     )
 
 
 def solver_mip(n_loci, pop_0):
-    return emip.breeding_program(n_loci, pop_0)
+    return emip.breeding_program(n_loci, pop_0, timeout=TIMEOUT)
 
 
 SOLVERS = {
