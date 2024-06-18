@@ -130,27 +130,17 @@ if __name__ == "__main__":
     else:
         raise ValueError("incorrect format for loci set")
 
-    """
-    The follwing extension to the interface doesn't work because
-    the instance generation is happening before this point.
-
     if pop_string is None:
-        pop_string = "2, 4, 6, 8"
+        pop_string = "2,4,6,8"
 
     if pop_string.isnumeric():
         N_POP = [eval(pop_string)]
-    elif pop_string.count("-") == 1 and all(
-        s.isnumeric() for s in pop_string.split("-")
-    ):
-        s, e = (int(c) for c in pop_string.split("-"))
-        N_POP = list(range(s, e + 1))
-    elif pop_string.count("-") == 0 and all(
-        s.isnumeric() for s in pop_string.split(",")
+    elif all(
+        s.isnumeric() and s in "2468" for s in pop_string.split(",")
     ):
         N_POP = [eval(s) for s in pop_string.split(",")]
     else:
         raise ValueError("incorrect format for pop set")
-    """
 
     for name, solver in solvers:
         for n_loci in N_LOCI:
@@ -164,7 +154,8 @@ if __name__ == "__main__":
                     time_l1 = 0
                     time_l2 = 0
                     for _ in range(N_TRIALS):
-                        objective = solver(n_loci, inst).objective
+                        result = solver(n_loci, inst)
+                        objective = None if result is None else result.objective
                         time_res = time.time() - time_l1 - start
                         time_l1 += time_res
                         time_l2 += time_res ** 2
