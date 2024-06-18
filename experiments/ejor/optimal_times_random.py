@@ -17,7 +17,6 @@ seed(0)
 N_LOCI = list(range(2, 11))
 N_POP = [2, 4, 6, 8]
 N_INST = 100
-N_TRIALS = 1
 TIMEOUT = 300
 
 INSTANCES = {
@@ -148,20 +147,13 @@ if __name__ == "__main__":
                 instances = INSTANCES[n_loci][n_pop]
                 objectives = [None] * N_INST
                 times_l1 = [0] * N_INST
-                times_l2 = [0] * N_INST
                 start = time.time()
                 for i, inst in enumerate(instances):
-                    time_l1 = 0
-                    time_l2 = 0
-                    for _ in range(N_TRIALS):
-                        result = solver(n_loci, inst)
-                        objective = None if result is None else result.objective
-                        time_res = time.time() - time_l1 - start
-                        time_l1 += time_res
-                        time_l2 += time_res ** 2
-                    objectives[i] = objective
-                    times_l1[i] = time_l1 / N_TRIALS
-                    times_l2[i] = time_l2 / N_TRIALS ** 2
+                    start = time.time()
+                    result = solver(n_loci, inst)
+                    time_res = time.time() - start
+                    objectives[i] = None if result is None else result.objective
+                    times_l1[i] = time_res
                 if output_file == "":
                     print(
                         json.dumps(
@@ -169,9 +161,7 @@ if __name__ == "__main__":
                                 "solver": name,
                                 "n_loci": n_loci,
                                 "n_pop": n_pop,
-                                "n_trials": N_TRIALS,
                                 "times_l1": times_l1,
-                                "times_l2": times_l2,
                                 "objectives": objectives,
                             }
                         )
@@ -184,9 +174,7 @@ if __name__ == "__main__":
                                     "solver": name,
                                     "n_loci": n_loci,
                                     "n_pop": n_pop,
-                                    "n_trials": N_TRIALS,
                                     "times_l1": times_l1,
-                                    "times_l2": times_l2,
                                     "objectives": objectives,
                                 }
                             ),
