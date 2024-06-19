@@ -6,7 +6,7 @@ distribute instances.
 import os
 import json
 from random import seed
-from multiprocessing import Process, Pipe
+from multiprocessing import Process, Pipe, set_start_method
 
 import eugene.solvers.base_min_crossings_astar as east
 import eugene.solvers.base_min_crossings_mip as emip
@@ -102,6 +102,7 @@ SOLVERS = {
 
 
 if __name__ == "__main__":
+    set_start_method("fork")
     import argparse
     import time
 
