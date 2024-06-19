@@ -6,6 +6,7 @@ distribute instances.
 import os
 import json
 from random import seed
+from multiprocessing import Process, Pipe
 
 import eugene.solvers.base_min_crossings_astar as east
 import eugene.solvers.base_min_crossings_mip as emip
@@ -33,8 +34,28 @@ INSTANCES = {
 }
 
 
+def run_with_timeout(f, args=(), timeout=None):
+    tx, rx = Pipe()
+    res = None
+    p = Process(group=None, target=f, args=(args, tx))
+    p.start()
+    p.join(timeout)
+    if p.is_alive():
+        p.terminate()
+    else:
+        res = rx.recv()
+    p.join()
+    return res
+
+
+def solver_astar_aux(args, tx):
+    res = east.breeding_program(*args)
+    tx.send(res)
+    tx.close()
+
+
 def solver_astar(n_loci, pop_0):
-    return east.breeding_program(n_loci, pop_0, timeout=TIMEOUT)
+    return run_with_timeout(solver_astar_aux, (n_loci, pop_0), TIMEOUT)
 
 
 CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
@@ -42,10 +63,14 @@ CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
 )
 
 
+def solver_cp_aux(args, tx):
+    res = emzn.breeding_program(*args)
+    tx.send(res)
+    tx.close()
+
+
 def solver_cp_sat(n_loci, pop_0):
-    return emzn.breeding_program(
-        n_loci, pop_0, ctx=CTX_SAT, timeout=TIMEOUT
-    )
+    return run_with_timeout(solver_cp_aux, (n_loci, pop_0, CTX_SAT), TIMEOUT)
 
 
 CTX_MIP = emzn.MinizincContext.from_solver_and_model_file(
@@ -54,13 +79,17 @@ CTX_MIP = emzn.MinizincContext.from_solver_and_model_file(
 
 
 def solver_cp_mip(n_loci, pop_0):
-    return emzn.breeding_program(
-        n_loci, pop_0, ctx=CTX_MIP, timeout=TIMEOUT
-    )
+    return run_with_timeout(solver_cp_aux, (n_loci, pop_0, CTX_MIP), TIMEOUT)
+
+
+def solver_mip_aux(args, tx):
+    res = emip.breeding_program(*args)
+    tx.send(res)
+    tx.close()
 
 
 def solver_mip(n_loci, pop_0):
-    return emip.breeding_program(n_loci, pop_0, timeout=TIMEOUT)
+    return run_with_timeout(solver_mip_aux, (n_loci, pop_0), TIMEOUT)
 
 
 SOLVERS = {
@@ -70,6 +99,7 @@ SOLVERS = {
     "MIP": solver_mip,
     "A*": solver_astar,
 }
+
 
 if __name__ == "__main__":
     import argparse
