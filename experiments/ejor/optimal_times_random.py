@@ -71,7 +71,7 @@ CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
 def solver_cp_aux(args, tx):
     start = time.time()
     res_obj = emzn.breeding_program(*args)
-    res_time = start - time.time()
+    res_time = time.time() - start
     tx.send((res_obj, res_time))
     tx.close()
 

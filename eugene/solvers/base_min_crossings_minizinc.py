@@ -32,7 +32,6 @@ def breeding_program_distribute(
         for k, v in items:
             instance[k] = v
 
-        print(timeout)
         result = instance.solve(
             free_search=True, processes=processes, timeout=timeout
         )
@@ -49,7 +48,6 @@ def breeding_program_distribute(
             for k, v in items:
                 instance[k] = v
 
-            print(timeout)
             result = instance.solve(free_search=True, timeout=timeout)
             return BaseSolution(
                 tree_data=result["xs"],

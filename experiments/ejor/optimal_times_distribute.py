@@ -13,6 +13,7 @@ against a list of previously observed instances.
 import os
 import json
 from random import seed
+from multiprocessing import Process, Pipe, set_start_method
 
 import eugene.utils as eu
 import eugene.solvers.base_min_crossings_astar as east
@@ -23,7 +24,8 @@ seed(0)
 
 N_LOCI = list(range(2, 11))
 N_INST = 100
-N_TRIALS = 5
+TIMEOUT = 300
+THREAD_DELTA = 0.125
 
 INSTANCES = {
     n_loci: [eu.random_distribute_instance(n_loci) for _ in range(N_INST)]
@@ -34,34 +36,76 @@ INSTANCES = {
 INSTANCES = {int(k): v for k, v in json.load(open("./data/optgap_instances.json")).items()}
 
 
-def solver_astar(dist_array):
-    return east.breeding_program_distribute(dist_array)
+def run_with_timeout(f, args=(), timeout=None):
+    tx, rx = Pipe()
+    res = None
+    p = Process(group=None, target=f, args=(args, tx))
+    p.start()
+    p.join(timeout)
+    if p.is_alive():
+        p.terminate()
+    else:
+        res = rx.recv()
+    p.join()
+    return res
+
+
+def solver_astar_aux(args, tx):
+    start = time.time()
+    res_obj = east.breeding_program_distribute(*args)
+    res_time = time.time() - start
+    tx.send((res_obj, res_time))
+    tx.close()
+
+
+def solver_astar(n_loci, pop_0):
+    return run_with_timeout(
+        solver_astar_aux, (n_loci, pop_0), TIMEOUT + THREAD_DELTA
+    )
 
 
 CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
-    "sat", "./eugene/solvers/minizinc/modelGenotypes.mzn"
+    "sat", "./eugene/solvers/minizinc/mincross.mzn"
 )
 
 
-def solver_cp_sat(dist_array):
-    return emzn.breeding_program_distribute(
-        len(dist_array), dist_array, ctx=CTX_SAT
+def solver_cp_aux(args, tx):
+    start = time.time()
+    res_obj = emzn.breeding_program_distribute(*args)
+    res_time = time.time() - start
+    tx.send((res_obj, res_time))
+    tx.close()
+
+
+def solver_cp_sat(n_loci, pop_0):
+    return run_with_timeout(
+        solver_cp_aux, (n_loci, pop_0, CTX_SAT), TIMEOUT + THREAD_DELTA
     )
 
 
 CTX_MIP = emzn.MinizincContext.from_solver_and_model_file(
-    "gurobi", "./eugene/solvers/minizinc/modelGenotypes.mzn"
+    "gurobi", "./eugene/solvers/minizinc/mincross.mzn"
 )
 
 
-def solver_cp_mip(dist_array):
-    return emzn.breeding_program_distribute(
-        len(dist_array), dist_array, ctx=CTX_MIP
+def solver_cp_mip(n_loci, pop_0):
+    return run_with_timeout(
+        solver_cp_aux, (n_loci, pop_0, CTX_MIP), TIMEOUT + THREAD_DELTA
     )
 
 
-def solver_mip(dist_array):
-    return emip.breeding_program_distribute(dist_array)
+def solver_mip_aux(args, tx):
+    start = time.time()
+    res_obj = emip.breeding_program_distribute(*args)
+    res_time = time.time() - start
+    tx.send((res_obj, res_time))
+    tx.close()
+
+
+def solver_mip(n_loci, pop_0):
+    return run_with_timeout(
+        solver_mip_aux, (n_loci, pop_0), TIMEOUT + THREAD_DELTA
+    )
 
 
 SOLVERS = {
@@ -73,9 +117,9 @@ SOLVERS = {
 }
 
 if __name__ == "__main__":
+    set_start_method("fork")
     import argparse
     import time
-    import os
 
     parser = argparse.ArgumentParser(
         "Experiment runner for MinCross algorithms on random instances"
@@ -133,28 +177,27 @@ if __name__ == "__main__":
         for n_loci, instances in ((n_loci, INSTANCES[n_loci]) for n_loci in N_LOCI):
             objectives = [None] * len(instances)
             times_l1 = [0] * len(instances)
-            times_l2 = [0] * len(instances)
             start = time.time()
             for i, inst in enumerate(instances):
-                time_l1 = 0
-                time_l2 = 0
-                for _ in range(N_TRIALS):
-                    objective = solver(inst).objective
-                    time_res = time.time() - time_l1 - start
-                    time_l1 += time_res
-                    time_l2 += time_res ** 2
-                objectives[i] = objective
-                times_l1[i] = time_l1 / N_TRIALS
-                times_l2[i] = time_l2 / N_TRIALS ** 2
+                result = solver(n_loci, inst)
+                if result is None:
+                    objectives[i] = None
+                    times_l1[i] = TIMEOUT
+                else:
+                    res_obj, res_time = result
+                    if res_time >= TIMEOUT:
+                        objectives[i] = None
+                        times_l1[i] = TIMEOUT
+                    else:
+                        objectives[i] = res_obj.objective
+                        times_l1[i] = res_time
             if output_file == "":
                 print(
                     json.dumps(
                         {
                             "solver": name,
                             "n_loci": n_loci,
-                            "n_trials": N_TRIALS,
                             "times_l1": times_l1,
-                            "times_l2": times_l2,
                             "objectives": objectives,
                         }
                     )
@@ -166,9 +209,7 @@ if __name__ == "__main__":
                             {
                                 "solver": name,
                                 "n_loci": n_loci,
-                                "n_trials": N_TRIALS,
                                 "times_l1": times_l1,
-                                "times_l2": times_l2,
                                 "objectives": objectives,
                             }
                         ),
