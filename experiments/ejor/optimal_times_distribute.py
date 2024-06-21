@@ -60,7 +60,7 @@ def solver_astar_aux(args, tx):
 
 def solver_astar(n_loci, pop_0):
     return run_with_timeout(
-        solver_astar_aux, (n_loci, pop_0), TIMEOUT + THREAD_DELTA
+        solver_astar_aux, (pop_0,), TIMEOUT + THREAD_DELTA
     )
 
 
@@ -104,7 +104,7 @@ def solver_mip_aux(args, tx):
 
 def solver_mip(n_loci, pop_0):
     return run_with_timeout(
-        solver_mip_aux, (n_loci, pop_0), TIMEOUT + THREAD_DELTA
+        solver_mip_aux, (pop_0,), TIMEOUT + THREAD_DELTA
     )
 
 
