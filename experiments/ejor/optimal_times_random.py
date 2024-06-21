@@ -203,7 +203,7 @@ if __name__ == "__main__":
                             objectives[i] = None
                             times_l1[i] = TIMEOUT
                         else:
-                            objectives[i] = res_obj
+                            objectives[i] = res_obj.objective
                             times_l1[i] = res_time
                 if output_file == "":
                     print(
