@@ -19,6 +19,7 @@ N_LOCI = list(range(2, 11))
 N_POP = [2, 4, 6, 8]
 N_INST = 100
 TIMEOUT = 300
+THREAD_DELTA = 0.125
 
 INSTANCES = {
     n_loci: {
@@ -49,13 +50,17 @@ def run_with_timeout(f, args=(), timeout=None):
 
 
 def solver_astar_aux(args, tx):
-    res = east.breeding_program(*args)
-    tx.send(res)
+    start = time.time()
+    res_obj = east.breeding_program(*args)
+    res_time = time.time() - start
+    tx.send((res_obj, res_time))
     tx.close()
 
 
 def solver_astar(n_loci, pop_0):
-    return run_with_timeout(solver_astar_aux, (n_loci, pop_0), TIMEOUT)
+    return run_with_timeout(
+        solver_astar_aux, (n_loci, pop_0), TIMEOUT + THREAD_DELTA
+    )
 
 
 CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
@@ -64,13 +69,17 @@ CTX_SAT = emzn.MinizincContext.from_solver_and_model_file(
 
 
 def solver_cp_aux(args, tx):
-    res = emzn.breeding_program(*args)
-    tx.send(res)
+    start = time.time()
+    res_obj = emzn.breeding_program(*args)
+    res_time = start - time.time()
+    tx.send((res_obj, res_time))
     tx.close()
 
 
 def solver_cp_sat(n_loci, pop_0):
-    return run_with_timeout(solver_cp_aux, (n_loci, pop_0, CTX_SAT), TIMEOUT)
+    return run_with_timeout(
+        solver_cp_aux, (n_loci, pop_0, CTX_SAT), TIMEOUT + THREAD_DELTA
+    )
 
 
 CTX_MIP = emzn.MinizincContext.from_solver_and_model_file(
@@ -79,17 +88,23 @@ CTX_MIP = emzn.MinizincContext.from_solver_and_model_file(
 
 
 def solver_cp_mip(n_loci, pop_0):
-    return run_with_timeout(solver_cp_aux, (n_loci, pop_0, CTX_MIP), TIMEOUT)
+    return run_with_timeout(
+        solver_cp_aux, (n_loci, pop_0, CTX_MIP), TIMEOUT + THREAD_DELTA
+    )
 
 
 def solver_mip_aux(args, tx):
-    res = emip.breeding_program(*args)
-    tx.send(res)
+    start = time.time()
+    res_obj = emip.breeding_program(*args)
+    res_time = time.time() - start
+    tx.send((res_obj, res_time))
     tx.close()
 
 
 def solver_mip(n_loci, pop_0):
-    return run_with_timeout(solver_mip_aux, (n_loci, pop_0), TIMEOUT)
+    return run_with_timeout(
+        solver_mip_aux, (n_loci, pop_0), TIMEOUT + THREAD_DELTA
+    )
 
 
 SOLVERS = {
@@ -165,9 +180,7 @@ if __name__ == "__main__":
 
     if pop_string.isnumeric():
         N_POP = [eval(pop_string)]
-    elif all(
-        s.isnumeric() and s in "2468" for s in pop_string.split(",")
-    ):
+    elif all(s.isnumeric() and s in "2468" for s in pop_string.split(",")):
         N_POP = [eval(s) for s in pop_string.split(",")]
     else:
         raise ValueError("incorrect format for pop set")
@@ -180,11 +193,18 @@ if __name__ == "__main__":
                 times_l1 = [0] * N_INST
                 start = time.time()
                 for i, inst in enumerate(instances):
-                    start = time.time()
                     result = solver(n_loci, inst)
-                    time_res = time.time() - start
-                    objectives[i] = None if result is None else result.objective
-                    times_l1[i] = time_res
+                    if result is None:
+                        objectives[i] = None
+                        times_l1[i] = TIMEOUT
+                    else:
+                        res_obj, res_time = result
+                        if res_time >= TIMEOUT:
+                            objectives[i] = None
+                            times_l1[i] = TIMEOUT
+                        else:
+                            objectives[i] = res_obj
+                            times_l1[i] = res_time
                 if output_file == "":
                     print(
                         json.dumps(
@@ -209,5 +229,5 @@ if __name__ == "__main__":
                                     "objectives": objectives,
                                 }
                             ),
-                            file=f
+                            file=f,
                         )
