@@ -17,7 +17,7 @@ args = parser.parse_args()
 n_loci_max = args.n_loci_max
 n_instances = args.n_instances
 
-random.seed(0)
+random.seed(1)
 
 for n_loci in range(2, n_loci_max+1):
     for n_pop in [2, 4, 6, 8]:
