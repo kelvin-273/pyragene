@@ -13,7 +13,7 @@ def breeding_program_distribute(
     n_pop_orig = max(dist_array_extend) + 1
 
     tree_data = em.instance_array_genotype_homo(dist_array, max_crossovers=1)[
-        "genotypes"
+        "parents"
     ]
     n_leaves = len(tree_data)
     tree_type = ["Leaf"] * n_leaves

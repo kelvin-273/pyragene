@@ -204,27 +204,42 @@ def min_segment_cover(n_loci, segments):
     Given a list of segments, represented by triples [(s_x, e_x, g^x), ...],
     returns a minimum cardinality subset of segments that covers [n_loci].
     """
-    out = [None] * n_loci
+
+    segment_pigeonholes = [None] * n_loci
 
     for (s, e, g) in segments:
-        if out[s] is None or e > out[s][1]:
-            out[s] = (s, e, g)
+        if segment_pigeonholes[s] is None or e > segment_pigeonholes[s][1]:
+            segment_pigeonholes[s] = (s, e, g)
 
-    e_covered = -1
-    j = 0
-    i = 0
+    j = 1
+    i = 1
+    e_covered = segment_pigeonholes[0][1]
     while i < n_loci and e_covered < n_loci - 1:
         # INV: j == e_covered + 1
-        c_next = s_next, e_next, g_next = out[i]
-        while i < n_loci and out[i][0] <= e_covered + 1:
-            c = s, e, g = out[i]
-            if s <= e_covered + 1 <= e and e > e_next:
-                c_next = s_next, e_next, g_next = c
+        # INV: segment_pigeonholes[j-1].e == e_covered.
+        # INV: segment_pigeonholes[..j] is the minimum cardinality subset of segments in
+        #      segment_pigeonholes[..i] that covers {0..e_covered}.
+        if segment_pigeonholes[i] is not None:
+            c_next = s_next, e_next, g_next = segment_pigeonholes[i]
+            # while i < n_loci and segment_pigeonholes[i][0] <= e_covered + 1:
+            while i < n_loci and i <= e_covered + 1:
+                # INV: Let c_prev = segment_pigeonholes[j-1].
+                #      c_next is the segment in segment_pigeonholes[..i] with the largest endpoint
+                #      such that c_prev.s < c_next.s <= e_covered + 1
+                # EXC: i == n_loci \/ i > e_covered + 1
+                if segment_pigeonholes[i] is not None:
+                    c = s, e, g = segment_pigeonholes[i]
+                    # if s <= e_covered + 1 <= e and e > e_next:
+                    if e > e_next:
+                        c_next = s_next, e_next, g_next = c
+                i += 1
+            e_covered = e_next
+            segment_pigeonholes[j] = c_next
+            j += 1
+        else:
             i += 1
-        out[j] = c_next
-        j += 1
-        e_covered = e_next
-    return out[:j]
+
+    return segment_pigeonholes[:j]
 
 
 def min_segment_cover_key(n_loci, segments, key):

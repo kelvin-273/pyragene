@@ -2,7 +2,7 @@ import unittest
 import math
 
 from eugene.plant_models.plant2 import PlantSPC
-from eugene.simulators.enumerators import BreedingProgram
+from eugene.solvers.enumerators import BreedingProgram
 
 
 class TestClass(unittest.TestCase):
@@ -56,15 +56,3 @@ class TestClass(unittest.TestCase):
             )
         for n_loci in range(1, 8):
             aux(n_loci)
-
-    def test_get_paths(self):
-        runner = BreedingProgram(3, PlantSPC)
-        runner.set_init_pop(
-            [PlantSPC(3, 7, 0)]
-        )
-        runner.set_ideotype(PlantSPC(3, 7, 7))
-        runner.run()
-        res = runner.get_results()
-        # Want to test that the path is one run
-        runner.print_path_to_goal()
-        raise Exception("Test not implemented")

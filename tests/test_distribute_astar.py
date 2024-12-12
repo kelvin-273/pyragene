@@ -25,10 +25,28 @@ class TestDistAstar(unittest.TestCase):
                 ]
             )
 
+        """
+        In the current mininzinc (2024-12-13) the length of the output array is
+        always the same of the length of the input array. As a consequence,
+        many of the solutions that the minizinc model returns are  identical.
+        For example, given the distribute array `[1, 2, 3]`, the minizinc model
+        will return `[[0, 0, 2], [0, 1, 0], [0, 1, 1]]`. However, `[0, 0, 2]`
+        is structurally identical to `[0, 1, 1]` in that the any optimal
+        solution to `[0, 0, 2]` exhibits the same structure to some opitmal
+        solution to `[0, 1, 1]`.
+
+        This necessitates a second layer of symmetry breaking,
+        left as an exercise to a future computer scientist.
+
+        Wait (2024-12-13), this symmetry breaking is meant to be performed when
+        the `simplify_results` option is set to `True`.
+        See `test_branching_simplified` below.
+        """
+        # TODO: Break symmetry on equivalent output arrays <13-12-24> #
         self.assertEqual(f([0, 1]), [[0, 0]])
         self.assertEqual(f([0, 1, 0]), [[0, 0, 1], [0, 1, 1]])
-        self.assertEqual(f([0, 1, 2]), [[0, 0, 1], [0, 1, 0], [0, 1, 1]])
-        self.assertEqual(f([0, 1, 0, 1]), [[0, 1], [0, 1, 0]])
+        self.assertEqual(f([0, 1, 2]), [[0, 0, 2], [0, 1, 0], [0, 1, 1]])
+        self.assertEqual(f([0, 1, 0, 1]), [[0, 0, 1, 0], [0, 0,  1, 1], [0, 1, 0, 0], [0, 1, 1, 0]])
         self.assertEqual(f([0, 1, 0, 2]), [[0, 1, 0], [0, 1, 0, 1], [0, 1, 2]])
         self.assertEqual(f([0, 1, 2, 0]), [[0, 1, 0], [0, 1, 2]])
         self.assertEqual(f([0, 1, 2, 1]), [[0, 1, 0], [0, 1, 2]])

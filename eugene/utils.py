@@ -170,8 +170,8 @@ def cmp_le_distribute_arrays(dist_array1, dist_array2) -> bool:
 def distribute_sington_decomposition(dist_array) -> Tuple[int, List[int], int]:
     """
     Given a dist_array, returns a tuple `(leading_mins, mid, trailing_maxes)`
-    where `leading_mins` and `trailing_maxes` are the size of the largest 
-    strictly increasing prefix and suffix, repspectively, of dist_array whose
+    where `leading_mins` and `trailing_maxes` are the size of the largest
+    strictly increasing prefix and suffix, respectively, of dist_array whose
     values aren't found in anywhere else in dist_array and `mid` is the
     sanitised distribute array left over after removing the leading_mins and
     trailing_maxes.
@@ -205,7 +205,7 @@ def distribute_sington_decomposition(dist_array) -> Tuple[int, List[int], int]:
     return (
         leading_mins,
         sanitise_distribute_array(
-            dist_array[leading_mins : n_loci - trailing_maxes]
+            dist_array[leading_mins: n_loci - trailing_maxes]
         ),
         trailing_maxes,
     )

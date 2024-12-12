@@ -1,4 +1,4 @@
 include "mincross.mzn";
 
-constraint obj >= ceil((nGenotypes + nLoci) / 2);
-constraint obj <= ceil(((nGenotypes+1)*nGenotypes/2 + nLoci) / 2);
+constraint obj >= ceil((nParents+ nLoci) / 2);
+constraint obj <= ceil(((nParents+1)*nParents/2 + nLoci) / 2);

@@ -17,7 +17,8 @@ class TestDistributeDominance(unittest.TestCase):
         pass
 
     def test_distribute_dominance(self):
-        db = edb.DistributeDB.from_json_file(open("./distribute_data_2.json"))
+        with open("./distribute_data_2.json") as f:
+            db = edb.DistributeDB.from_json_file(f)
         solver_mzn = edb.DBSolver(
             lambda case: emz.breeding_program_distribute(
                 len(case), case, emz.DEFAULT_CTX

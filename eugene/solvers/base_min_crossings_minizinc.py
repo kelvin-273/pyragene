@@ -36,7 +36,7 @@ def breeding_program_distribute(
             free_search=True, processes=processes, timeout=timeout
         )
         return BaseSolution(
-            tree_data=result["xs"],
+            tree_data=result["treeData"],
             tree_type=result["treeType"],
             tree_left=result["treeLeft"],
             tree_right=result["treeRight"],
@@ -50,7 +50,7 @@ def breeding_program_distribute(
 
             result = instance.solve(free_search=True, timeout=timeout)
             return BaseSolution(
-                tree_data=result["xs"],
+                tree_data=result["treeData"],
                 tree_type=result["treeType"],
                 tree_left=result["treeLeft"],
                 tree_right=result["treeRight"],
@@ -79,7 +79,7 @@ def breeding_program(n_loci, pop_0, ctx=None, timeout=None) -> BaseSolution:
 
         result = instance.solve(free_search=True, timeout=timeout)
         return BaseSolution(
-            tree_data=result["xs"],
+            tree_data=result["treeData"],
             tree_type=result["treeType"],
             tree_left=result["treeLeft"],
             tree_right=result["treeRight"],
@@ -146,9 +146,9 @@ def instance_array_genotype_homo(instance_array, max_crossovers):
     return {
         "maxCrossovers": max_crossovers,
         "nLoci": n_loci,
-        "nGenotypes": n_gametes,
+        "nParents": n_gametes,
         "nTreeCells": n_loci + n_gametes,
-        "genotypes": [
+        "parents": [
             [[1 if j == i else 0 for j in instance_array]] * 2
             for i in range(n_gametes)
         ],
@@ -169,9 +169,9 @@ def instance_array_genotype(pop_0: List[ep2.PlantSPC], max_crossovers):
     return {
         "maxCrossovers": max_crossovers,
         "nLoci": n_loci,
-        "nGenotypes": n_pop,
+        "nParents": n_pop,
         "nTreeCells": n_loci + n_pop,
-        "genotypes": [x.to_bitlist() for x in pop_0],
+        "parents": [x.to_bitlist() for x in pop_0],
     }
 
 

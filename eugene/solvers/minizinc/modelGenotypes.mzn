@@ -1,18 +1,21 @@
 include "globals.mzn";
 
 int: nLoci;
-int: nGenotypes;
 set of int: NLoci = 1..nLoci;
 set of int: NLociDiff = NLoci diff {1};
-set of int: NGenotypes = 1..nGenotypes;
-set of int: NGenotypesOpt = {0} union NGenotypes;
+set of int: B = 0..1;   % allele values
 int: maxCrossovers;
+
+int: nParents;
+set of int: NParents = 1..nParents;
+array[NParents, 1..2, NLoci] of B: parents;
 
 int: nTreeCells;
 set of int: NTreeCells = 1..nTreeCells;
 
 enum NodeType = {Node, Leaf, Null};
 array[NTreeCells] of var NodeType: treeType;
+array[NTreeCells, 1..2, NLoci] of var B: treeData;
 array[NTreeCells] of var NTreeCells union {0}: treeLeft;
 array[NTreeCells] of var NTreeCells union {0}: treeRight;
 
@@ -29,29 +32,28 @@ constraint forall (i in NTreeCells where treeType[i] != Node) (
   treeLeft[i] = 0 /\ treeRight[i] = 0
 );
 
-set of int: B = 0..1;
-array[NGenotypes, 1..2, NLoci] of B: genotypes;
-array[NTreeCells, 1..2, NLoci] of var B: xs;
-
-array[NTreeCells] of var NGenotypesOpt: index;
-constraint forall (i in NTreeCells) (
-  (treeType[i] = Leaf <-> index[i] > 0) /\
-  (treeType[i] = Null <-> forall (c in 1..2) (
-    xs[i, c, NLoci] = [0 | _ in NLoci])
-  )
-);
+% Mapping leaves to parents surjectively
+array[NTreeCells] of var {0} union NParents: index;
+constraint forall (i in NTreeCells) (treeType[i] = Leaf <-> index[i] > 0);
 constraint all_different_except_0(index);
 constraint forall (i in NTreeCells where treeType[i] == Leaf) (
   forall (c in 1..2, j in NLoci) (
-    xs[i, c, j] = genotypes[index[i], c, j]
+    treeData[i, c, j] = parents[index[i], c, j]
   )
 );
 
+constraint forall (i in NTreeCells) (
+  (treeType[i] = Null <-> (
+      treeData[i, 1, NLoci] = [0 | _ in NLoci] /\
+      treeData[i, 2, NLoci] = [0 | _ in NLoci]
+    )
+  )
+);
 
 % First plant is the desired plant
 constraint 
-  xs[1, 1, NLoci] == [1 | _ in NLoci] /\
-  xs[1, 2, NLoci] == [1 | _ in NLoci] /\
+  treeData[1, 1, NLoci] == [1 | _ in NLoci] /\
+  treeData[1, 2, NLoci] == [1 | _ in NLoci] /\
   treeType[1] != Null;
 
 % Each internal node and its child nodes (genetic parents in reality)
@@ -79,15 +81,14 @@ predicate crossedGameteSPC(
   let {
     var NLoci: k;
   } in (forall (j in NLoci where j <= k) (
-    xs[igz, cgz, j] = xs[igx, cgx, j]
+    treeData[igz, cgz, j] = treeData[igx, cgx, j]
     ) /\ forall (j in NLoci where j > k) (
-      xs[igz, cgz, j] = xs[igy, cgy, j]
+      treeData[igz, cgz, j] = treeData[igy, cgy, j]
     )) \/ (forall (j in NLoci where j <= k) (
-    xs[igz, cgz, j] = xs[igy, cgy, j]
+    treeData[igz, cgz, j] = treeData[igy, cgy, j]
     ) /\ forall (j in NLoci where j > k) (
-      xs[igz, cgz, j] = xs[igx, cgx, j]
+      treeData[igz, cgz, j] = treeData[igx, cgx, j]
     ))
-
 );
 predicate crossedGamete(
   var NTreeCells: igx, var 1..2: cgx,
@@ -103,47 +104,36 @@ predicate crossedGamete(
     );
     constraint sum(swap) <= maxCrossovers;
     constraint count(swap, 1) <= maxCrossovers;
-    % dominance
   } in forall (j in NLoci) (
-    xs[igz, cgz, j] = [xs[igx, cgx, j], xs[igy, cgy, j]][source[j]]
+    treeData[igz, cgz, j] = [treeData[igx, cgx, j], treeData[igy, cgy, j]][source[j]]
   )
 );
 
-constraint symmetry_breaking_constraint(
-  forall (i in NTreeCells where treeType[i] == Node) (
-    treeLeft[i] <= treeRight[i]
-  )
-);
-
-% ideotype not in genotypes -> selfing
-constraint (
-  forall (i in NGenotypes) (
-    exists (c in 1..2, j in NLoci) (
-      genotypes[i, c, j] == 0
-    )
-  )
+% ideotype not in parents -> selfing
+constraint forall (i in NParents) (
+  sum(parents[i, 1..2, NLoci]) < 2*nLoci
 ) -> (treeLeft[1] = 2 /\ treeRight[1] = 2);
 
+% lexicographical ordering between chromosomes
 constraint symmetry_breaking_constraint(
   forall (i in NTreeCells where treeType[i] == Node /\ i > 1) (
-    true
-    %mylex2_strict(i)
-    %lex2_strict(xs[i, 1..2, NLoci]) % this one doesn't work but mine does
+    lex_less(treeData[i, 1, NLoci], treeData[i, 2, NLoci])
   )
 );
 
-predicate mylex2_strict(var NTreeCells: i) = (
-  let {
-    array[NLoci] of var bool: constrained;
-    constraint forall (j in NLociDiff) (
-      constrained[i+1] -> constrained[i]
-    );
-    constraint forall (j in NLociDiff) (
-      not constrained[i] -> not constrained[i+1]
-    );
-  } in forall (j in NLoci) (
-    constrained[i] -> xs[i, 1, j] >= xs[i, 2, j]
-  ) /\ forall (j in NLoci) (
-    xs[i, 1, j] > xs[i, 2, j] -> not constrained[i+1]
-  ) /\ constrained[1] = true
+% dominance between predecessors
+constraint forall(iz in NTreeCells, ix in NTreeCells where treeType[iz] = Node /\ iz < ix) (
+  forall(cz in 1..2, cx in 1..2) (
+    treeData[iz, cz, NLoci] = treeData[ix, cx, NLoci] \/
+    exists(j in NLoci) (
+      treeData[iz, cz, j] > treeData[ix, cx, j]
+    )
+  )
 );
+% dominance between chromosomes
+constraint forall(i in NTreeCells where treeType[i] = Node /\ i > 1) (
+  exists(j1 in NLoci, j2 in NLoci where j1 != j2) (
+    treeData[i, 1, j1] > treeData[i, 2, j1] /\
+    treeData[i, 2, j2] > treeData[i, 1, j2]
+  )
+)

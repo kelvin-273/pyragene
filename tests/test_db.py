@@ -10,6 +10,7 @@ class TestDB(unittest.TestCase):
         db = ed.DistributeDB()
         db[[0, 1, 0]] = 3
         self.assertTrue(db[[0, 1, 0]] == 3)
+        print(db.db)
         self.assertNotIn([0], db)
 
     def test_caching(self):
@@ -25,6 +26,7 @@ class TestDB(unittest.TestCase):
         ) as db:
             db[[0, 1, 2]] = 3
             self.assertEqual(db[[0, 1, 2]], 3)
+            self.assertIn([0, 1, 2], db)
             self.assertNotIn([0], db)
 
         with ed.CachedDB(

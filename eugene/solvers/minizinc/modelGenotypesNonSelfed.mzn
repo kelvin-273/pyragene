@@ -1,11 +1,11 @@
 include "globals.mzn";
 
 int: nLoci;
-int: nGenotypes;
+int: nParents;
 set of int: NLoci = 1..nLoci;
 set of int: NLociDiff = NLoci diff {1};
-set of int: NGenotypes = 1..nGenotypes;
-set of int: NGenotypesOpt = {0} union NGenotypes;
+set of int: NParents = 1..nParents;
+set of int: NParentsOpt = {0} union NParents;
 int: maxCrossovers;
 
 int: nTreeCells;
@@ -30,10 +30,10 @@ constraint forall (i in NTreeCells where treeType[i] != Node) (
 );
 
 set of int: B = 0..1;
-array[NGenotypes, 1..2, NLoci] of B: genotypes;
+array[NParents, 1..2, NLoci] of B: parents;
 array[NTreeCells, 1..2, NLoci] of var B: xs;
 
-array[NTreeCells] of var NGenotypesOpt: index;
+array[NTreeCells] of var NParentsOpt: index;
 constraint forall (i in NTreeCells) (
   (treeType[i] = Leaf <-> index[i] > 0) /\
   (treeType[i] = Null <-> forall (c in 1..2) (
@@ -43,7 +43,7 @@ constraint forall (i in NTreeCells) (
 constraint all_different_except_0(index);
 constraint forall (i in NTreeCells where treeType[i] == Leaf) (
   forall (c in 1..2, j in NLoci) (
-    xs[i, c, j] = genotypes[index[i], c, j]
+    xs[i, c, j] = parents[index[i], c, j]
   )
 );
 
@@ -116,11 +116,11 @@ constraint symmetry_breaking_constraint(
   )
 );
 
-% ideotype not in genotypes -> not selfing
+% ideotype not in parents -> not selfing
 constraint (
-  forall (i in NGenotypes) (
+  forall (i in NParents) (
     exists (c in 1..2, j in NLoci) (
-      genotypes[i, c, j] == 0
+      parents[i, c, j] == 0
     )
   )
 ) -> (treeLeft[1] = 2 xor treeRight[1] = 2);

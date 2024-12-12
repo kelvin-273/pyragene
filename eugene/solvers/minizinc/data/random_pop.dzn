@@ -1,8 +1,8 @@
 maxCrossovers = 1;
 nLoci = 2;
-nGenotypes = 3;
+nParents = 3;
 nTreeCells = 5;
-genotypes = array3d(1..nGenotypes, 1..2, 1..nLoci, [|
+parents = array3d(1..nParents, 1..2, 1..nLoci, [|
     1, 0, 0, 0,
   | 0, 0, 0, 0,
   | 0, 0, 1, 1

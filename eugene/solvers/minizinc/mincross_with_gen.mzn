@@ -2,8 +2,8 @@ include "modelGenotypes.mzn";
 
 var NLoci union {0}: nCrossings;
 constraint nCrossings = count(treeType, Node);
-constraint nCrossings >= ceil((nGenotypes + nLoci) / 2);
-constraint nCrossings <= ceil(((nGenotypes+1)*nGenotypes/2 + nLoci) / 2);
+constraint nCrossings >= ceil((nParents + nLoci) / 2);
+constraint nCrossings <= ceil(((nParents+1)*nParents/2 + nLoci) / 2);
 constraint nCrossings <= nLoci;
 
 array[NTreeCells] of var NLoci union {0}: gen;

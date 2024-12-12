@@ -23,13 +23,16 @@ class Node:
 
     @staticmethod
     def from_dist_array(dist_array):
+        n_gametes = max(dist_array) + 1
+        n_segments = len(dist_array)
         return Node(
             xs=dist_array,
             parent_gametes=None,
             parent_node=Node,
-            n_gametes=max(dist_array) + 1,
-            n_segments=len(dist_array),
+            n_gametes=n_gametes,
+            n_segments=n_segments,
             g=0,
+            f=(n_segments + n_gametes) / 2
         )
 
     def __str__(self):
@@ -49,7 +52,6 @@ def astar(dist_array, ctx):
         open_list.extend(branching(node, ctx=ctx, simplify_results=True))
 
 
-
 def branching(state: Node, ctx, simplify_results=True) -> List[Node]:
     with ctx.instance.branch() as instance:
         instance["instance"] = state.xs
@@ -64,9 +66,11 @@ def branching(state: Node, ctx, simplify_results=True) -> List[Node]:
                 parent_node=state,
                 n_gametes=res.nGametes,
                 n_segments=res.nSegments,
-                g=state.g + 2
+                g=state.g + 2,
+                f=state.g + 2 + (res.nGametes + res.nSegments) / 2
             )
-            for res in (lambda x: (print(x), x)[1])(instance.solve(all_solutions=True))
+            # for res in (lambda x: (print(x), x)[1])(instance.solve(all_solutions=True))
+            for res in instance.solve(all_solutions=True)
         ]
 
 

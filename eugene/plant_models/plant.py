@@ -1,6 +1,8 @@
 from math import log, log2
 from dataclasses import dataclass
 from collections import Counter
+from typing import NewType, Callable
+from random import randrange
 
 from eugene.utils import *
 
