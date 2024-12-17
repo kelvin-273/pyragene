@@ -1,5 +1,6 @@
 from typing import List
 import eugene.utils as eu
+import eugene.solvers.base_min_generations_segment as es
 import eugene.solvers.base_min_crossings_minizinc as em
 from eugene.solution import BaseSolution
 
@@ -11,6 +12,14 @@ def breeding_program_distribute(
     dist_array_extend = eu.sanitise_distribute_array(dist_array)
 
     n_pop_orig = max(dist_array_extend) + 1
+    if n_pop_orig == n_loci:
+        # In this situation, this algorithm would otherwise continue to
+        # full-join until the [0] case whose objective is 0 as opposed to 1.
+        # This hack recognises that the segment algorithm gives an optimal
+        # crossing schedule in this case.
+        mingen_solution = es.breeding_program_distribute(dist_array)
+        mingen_solution.objective = n_loci
+        return mingen_solution
 
     tree_data = em.instance_array_genotype_homo(dist_array, max_crossovers=1)[
         "parents"
