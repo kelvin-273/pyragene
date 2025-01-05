@@ -33,7 +33,7 @@ INSTANCES = {
 }
 
 
-INSTANCES = {int(k): v for k, v in json.load(open("./data/optgap_instances.json")).items()}
+# INSTANCES = {int(k): v for k, v in json.load(open("./data/optgap_instances.json")).items()}
 
 
 def run_with_timeout(f, args=(), timeout=None):
